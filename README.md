@@ -5,7 +5,7 @@ Portable C++23 maze experiments built with CMake.
 ## Requirements
 
 - CMake 3.25 or newer
-- A C++23 compiler
+- A C23 and C++23 compiler
 - `ncurses`
 - macOS or Linux
 
