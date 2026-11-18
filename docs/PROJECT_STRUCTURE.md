@@ -13,6 +13,7 @@ architectural decision changes the layout.
 ├── AGENTS.md                  # AI-facing project goals and constraints
 ├── README.md                  # User-facing build, test, clean, and run instructions
 ├── cmake/                     # Dependency integration and platform build logic
+│   ├── ncurses.cmake          # Prefer Homebrew ncurses; portable fallback
 │   └── roblib.cmake           # Fetch/build/reuse c-roblib
 ├── docs/                      # Design, architecture, and development notes
 │   └── PROJECT_STRUCTURE.md   # This document
