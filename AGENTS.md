@@ -30,6 +30,6 @@ Use a cross-platform CMake-based structure suitable for CLion and command-line b
 
 The initial repository layout and CMake skeleton are now established. The detailed layout is documented in [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md), which should be updated when directories gain new responsibilities or architectural constraints change.
 
-The next implementation work should add platform checks, dependency-fetch/build integration for the C library, `ncurses` detection, and meaningful verification targets before adding application features.
+The build now checks for macOS/Linux, rejects Windows explicitly, detects `ncurses` and `CURL`, and fetches `c-roblib` from its `main` branch when no staged copy exists. The external library is built only through its `c_roblib` target and staged under the build tree; its current upstream CMake configuration may still download Google Test during configure, but does not build the library tests. Network access is only needed when the staged archive and headers are absent; pinning a release or commit remains future work.
 
 When important architectural decisions, constraints, or unfinished work arise, update this document or add a clearly linked top-level project document so future AI interactions can use it as authoritative context.

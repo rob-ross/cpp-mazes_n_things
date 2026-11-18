@@ -11,6 +11,9 @@ architectural decision changes the layout.
 .
 ├── CMakeLists.txt             # Root build configuration and project targets
 ├── AGENTS.md                  # AI-facing project goals and constraints
+├── README.md                  # User-facing build, test, clean, and run instructions
+├── cmake/                     # Dependency integration and platform build logic
+│   └── roblib.cmake           # Fetch/build/reuse c-roblib
 ├── docs/                      # Design, architecture, and development notes
 │   └── PROJECT_STRUCTURE.md   # This document
 ├── include/                   # Public C++ headers owned by this project
@@ -30,16 +33,22 @@ namespace subdirectory as the public API grows, for example
 Generated files must not be committed to the source tree. Configure builds in a
 separate directory such as `build/` or `cmake-build-debug/`.
 
-The external C library should eventually be isolated behind a dedicated CMake
-dependency area. Its exact directory names will be documented here when the
-library acquisition and build workflow is implemented. The intended shape is:
+The external C library is staged under the out-of-source build directory. The
+`ROBLIB_REPOSITORY` and `ROBLIB_TAG` cache variables control acquisition; the
+default is the `main` branch. Once staged, the archive and headers are reused
+without network access.
 
 ```text
 <build directory>/
-└── dependencies/<library>/  # Locally built library and exported headers
+└── dependencies/c-roblib/
+    └── install/
+        ├── include/roblib/  # Headers consumed by this project
+        └── lib/libc_roblib.a
 ```
 
-Platform-specific acquisition and build logic belongs in `cmake/` once needed.
+The imported `c_roblib` target exposes the staged include directory and archive.
+The upstream project currently configures its Google Test dependency even when
+only `c_roblib` is built; its test executable is not built by this project.
 
 ## Directory responsibilities
 
@@ -47,7 +56,7 @@ Platform-specific acquisition and build logic belongs in `cmake/` once needed.
 - `include/`: Headers intended for use by other targets; do not place generated dependency headers here.
 - `tests/`: Reproducible tests and their CMake targets.
 - `docs/`: Human- and AI-readable architecture and development documentation.
-- `cmake/` (planned): CMake modules, capability checks, toolchain helpers, and dependency integration.
+- `cmake/`: CMake modules, capability checks, toolchain helpers, and dependency integration.
 - `third_party/` (planned): Vendored source only when a dependency cannot use the configured build workflow; never generated output.
 
 ## Evolution rules
