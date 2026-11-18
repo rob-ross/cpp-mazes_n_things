@@ -2,19 +2,20 @@ include(ExternalProject)
 
 set(ROBLIB_SOURCE_DIR "${CMAKE_BINARY_DIR}/dependencies/c-roblib/source")
 set(ROBLIB_INSTALL_DIR "${CMAKE_BINARY_DIR}/dependencies/c-roblib/install")
+set(ROBLIB_INCLUDE_DIR "${ROBLIB_INSTALL_DIR}/include")
 set(ROBLIB_REPOSITORY "https://github.com/rob-ross/c-roblib.git" CACHE STRING "c-roblib Git repository")
 set(ROBLIB_TAG "main" CACHE STRING "c-roblib Git branch, tag, or commit")
 
 # CMake validates imported include directories during generation, before the
 # external project has had a chance to install its headers.
-file(MAKE_DIRECTORY "${ROBLIB_INSTALL_DIR}/include")
+file(MAKE_DIRECTORY "${ROBLIB_INCLUDE_DIR}")
 
 if(EXISTS "${ROBLIB_INSTALL_DIR}/lib/libc_roblib.a" AND
    EXISTS "${ROBLIB_INSTALL_DIR}/include/roblib")
     add_library(c_roblib STATIC IMPORTED GLOBAL)
     set_target_properties(c_roblib PROPERTIES
         IMPORTED_LOCATION "${ROBLIB_INSTALL_DIR}/lib/libc_roblib.a"
-        INTERFACE_INCLUDE_DIRECTORIES "${ROBLIB_INSTALL_DIR}/include"
+        INTERFACE_INCLUDE_DIRECTORIES "${ROBLIB_INCLUDE_DIR}"
 #        INTERFACE_LINK_LIBRARIES CURL::libcurl
     )
 else()
@@ -39,7 +40,7 @@ else()
     add_library(c_roblib STATIC IMPORTED GLOBAL)
     set_target_properties(c_roblib PROPERTIES
         IMPORTED_LOCATION "${ROBLIB_INSTALL_DIR}/lib/libc_roblib.a"
-        INTERFACE_INCLUDE_DIRECTORIES "${ROBLIB_INSTALL_DIR}/include"
+        INTERFACE_INCLUDE_DIRECTORIES "${ROBLIB_INCLUDE_DIR}"
 #        INTERFACE_LINK_LIBRARIES CURL::libcurl
     )
     add_dependencies(c_roblib roblib_external)

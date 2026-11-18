@@ -5,13 +5,19 @@ Portable C++23 maze experiments built with CMake.
 ## Requirements
 
 - CMake 3.25 or newer
-- A C++23 compiler
+- A C23 and C++23 compiler
 - `ncurses`
 - macOS or Linux
 
 Windows is not supported yet. On the first configure, CMake fetches and builds
 `c-roblib` from its `main` branch. Later builds reuse the staged dependency in
 the build directory unless it is removed.
+
+On macOS, if Homebrew and its keg-only `ncurses` formula are installed, the
+build automatically prefers Homebrew's wide-character `ncursesw` through
+`pkg-config`. Otherwise it falls back to CMake's portable `Curses` discovery.
+The Homebrew path supplies `_DARWIN_C_SOURCE` and the required include and
+linker settings without requiring project-wide compiler flags.
 
 ## Configure and build
 
