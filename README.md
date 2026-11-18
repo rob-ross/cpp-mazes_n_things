@@ -7,7 +7,6 @@ Portable C++23 maze experiments built with CMake.
 - CMake 3.25 or newer
 - A C++23 compiler
 - `ncurses`
-- `libcurl`
 - macOS or Linux
 
 Windows is not supported yet. On the first configure, CMake fetches and builds
