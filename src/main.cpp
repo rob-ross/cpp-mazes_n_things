@@ -1,13 +1,22 @@
 #include <cstdio>
-
 #include <ncurses.h>
-
+#include <iostream>
 #include <roblib/base.h>
 
 int main() {
     printf("Hello from mazes_n_things!\n");
     int x = 5; int y = 2;
     SWAP(x, y);
+
+    // try malloc and new. These will trigger asan in debug build.
+    int * i_ptr = static_cast<int *>(malloc(sizeof(int)));
+    *i_ptr = 42;
+
+    std::cout << "*i_ptr is " << *i_ptr << std::endl;
+    free(i_ptr);
+
+
+
     return 0;
 }
 
