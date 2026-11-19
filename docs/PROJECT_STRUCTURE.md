@@ -36,8 +36,10 @@ separate directory such as `build/` or `cmake-build-debug/`.
 
 The external C library is staged under the out-of-source build directory. The
 `ROBLIB_REPOSITORY` and `ROBLIB_TAG` cache variables control acquisition; the
-default is the `main` branch. Once staged, the archive and headers are reused
-without network access.
+default is the `main` branch. Once staged, the archive and headers are reused.
+During configure, the project checks for a different remote revision when
+`ROBLIB_CHECK_FOR_UPDATES` is enabled (the default), and keeps the local copy
+when the remote cannot be reached.
 
 ```text
 <build directory>/
