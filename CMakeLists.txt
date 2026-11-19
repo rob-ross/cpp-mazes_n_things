@@ -38,8 +38,9 @@ else()
     set(SAN_FLAGS "-fsanitize=address")
 endif()
 
-# Helpful for debugging (CLion usually does this in Debug, but explicit is fine)
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${SAN_FLAGS} -O0 -g  \
+# Helpful for debugging (CMake usually does some of this in Debug, but explicit is fine)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${SAN_FLAGS} \
+-O0 -g  \
 -Wall -Wpedantic -Wextra -Werror -Wshadow -Wimplicit-fallthrough \
 -fno-omit-frame-pointer \
 -Wno-unknown-attributes \
