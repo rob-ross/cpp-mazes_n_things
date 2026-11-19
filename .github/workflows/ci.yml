@@ -15,10 +15,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: ARM Apple Clang (hosted default)
+          - name: Mac ARM Apple Clang 17
             cc: clang
             cxx: clang++
-          - name: ARM Homebrew GCC 14
+          - name: Mac ARM Homebrew GCC 14
             cc: gcc-14
             cxx: g++-14
 
