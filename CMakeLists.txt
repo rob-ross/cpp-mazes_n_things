@@ -29,6 +29,14 @@ set(PROJ_TEST_DIR    ${PROJ_ROOT_DIR}/test)
 # -fsanitize=leak doesn't work on some Mac OS.... todo investigate
 # -fsanitize=address -fsanitize=leak
 set(SAN_FLAGS "-fsanitize=address" )
+if(APPLE
+        AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+        AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
+    message(STATUS "Disabling AddressSanitizer for GCC on Apple Silicon: libasan is unavailable")
+    set(SAN_FLAGS "")
+else()
+    set(SAN_FLAGS "-fsanitize=address")
+endif()
 
 # Helpful for debugging (CLion usually does this in Debug, but explicit is fine)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${SAN_FLAGS} -O0 -g  \
