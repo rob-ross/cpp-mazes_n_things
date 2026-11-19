@@ -1,3 +1,5 @@
+[![CI](https://github.com/rob-ross/cpp-mazes_n_things/actions/workflows/ci.yml/badge.svg)](https://github.com/rob-ross/cpp-mazes_n_things/actions/workflows/ci.yml)
+
 # mazes_n_things
 
 Portable C++23 maze experiments built with CMake.
