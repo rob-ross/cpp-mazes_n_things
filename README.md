@@ -11,7 +11,10 @@ Portable C++23 maze experiments built with CMake.
 
 Windows is not supported yet. On the first configure, CMake fetches and builds
 `c-roblib` from its `main` branch. Later builds reuse the staged dependency in
-the build directory unless it is removed.
+the build directory. When the source checkout already exists, configuration
+checks the remote branch and updates the dependency only when a different
+revision is available; if the network is unavailable, the local revision is
+used unchanged.
 
 On macOS, if Homebrew and its keg-only `ncurses` formula are installed, the
 build automatically prefers Homebrew's wide-character `ncursesw` through
@@ -43,6 +46,11 @@ cmake --build cmake-build-release
 The executable is written to the selected build directory as
 `mazes_n_things`.
 
+Google Test is fetched only for Debug configurations. CMake caches the
+checkout under `cmake-build-debug/_deps/`; it is reused across normal rebuilds
+and reconfiguration. Removing `cmake-build-debug` also removes that checkout,
+so the next configure will download it again.
+
 ## Run
 
 Run the Debug build from the project root with:
@@ -59,7 +67,7 @@ For the Release build, use:
 
 ## Test
 
-Run the configured tests (NONE YET) with:
+Run the configured tests with:
 
 ```shell
 ctest --test-dir cmake-build-debug --output-on-failure
@@ -82,3 +90,9 @@ rm -rf cmake-build-release
 Removing a build directory also removes its locally staged `c-roblib` source,
 archive, and headers. The next configure will therefore require network access
 to fetch the dependency again.
+
+To skip the remote revision check, configure with
+`-DROBLIB_CHECK_FOR_UPDATES=OFF`. `ROBLIB_REPOSITORY` and `ROBLIB_TAG` remain
+available as cache variables for selecting a repository or branch, tag, or
+commit; pinning a specific release is recommended once `c-roblib` has stable
+versioning.

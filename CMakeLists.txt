@@ -8,22 +8,51 @@ elseif(NOT APPLE AND NOT UNIX)
     message(FATAL_ERROR "This project currently supports only macOS and Linux.")
 endif()
 
+set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-include(cmake/ncurses.cmake)
 
+# Define semantic paths to avoid confusion with CMAKE_CURRENT_SOURCE_DIR
+# CMakeList.txt considers its current directory to be "CMAKE_CURRENT_SOURCE_DIR", which is confusing as there is
+# normally a nested 'src' directory at this level. So we create a variable 'LIB_ROOT_DIR' to serve as the
+# name of the project root directory
+set(PROJ_ROOT_DIR    ${CMAKE_CURRENT_SOURCE_DIR})
+set(PROJ_INCLUDE_DIR ${PROJ_ROOT_DIR}/include)
+set(PROJ_SRC_DIR     ${PROJ_ROOT_DIR}/src)
+set(PROJ_TEST_DIR    ${PROJ_ROOT_DIR}/test)
+
+
+# -fsanitize=leak doesn't work on some Mac OS.... todo investigate
+# -fsanitize=address -fsanitize=leak
+set(SAN_FLAGS "-fsanitize=address" )
+
+# Helpful for debugging (CLion usually does this in Debug, but explicit is fine)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${SAN_FLAGS} -O0 -g  \
+-Wall -Wpedantic -Wextra -Werror -Wshadow -Wimplicit-fallthrough \
+-fno-omit-frame-pointer \
+-Wno-unknown-attributes \
+-Wno-unused-const-variable \
+-Wno-unused-parameter \
+-Wno-unused-function \
+-Wno-unused-variable \
+")
+
+
+include(cmake/ncurses.cmake)
 include(cmake/roblib.cmake)
 
 add_executable(mazes_n_things src/main.cpp
 
 )
-target_include_directories(mazes_n_things PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(mazes_n_things PRIVATE ${PROJ_INCLUDE_DIR})
 target_include_directories(mazes_n_things PRIVATE ${ROBLIB_INCLUDE_DIR})
 target_link_libraries(mazes_n_things PRIVATE c_roblib ${NCURSES_TARGET})
 
 include(CTest)
-if(BUILD_TESTING)
+if(BUILD_TESTING AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_subdirectory(tests)
 endif()
