@@ -43,6 +43,11 @@ cmake --build cmake-build-release
 The executable is written to the selected build directory as
 `mazes_n_things`.
 
+Google Test is fetched only for Debug configurations. CMake caches the
+checkout under `cmake-build-debug/_deps/`; it is reused across normal rebuilds
+and reconfiguration. Removing `cmake-build-debug` also removes that checkout,
+so the next configure will download it again.
+
 ## Run
 
 Run the Debug build from the project root with:
@@ -59,7 +64,7 @@ For the Release build, use:
 
 ## Test
 
-Run the configured tests (NONE YET) with:
+Run the configured tests with:
 
 ```shell
 ctest --test-dir cmake-build-debug --output-on-failure

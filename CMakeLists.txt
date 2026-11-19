@@ -24,6 +24,6 @@ target_include_directories(mazes_n_things PRIVATE ${ROBLIB_INCLUDE_DIR})
 target_link_libraries(mazes_n_things PRIVATE c_roblib ${NCURSES_TARGET})
 
 include(CTest)
-if(BUILD_TESTING)
+if(BUILD_TESTING AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_subdirectory(tests)
 endif()

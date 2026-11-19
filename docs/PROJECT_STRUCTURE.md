@@ -21,7 +21,7 @@ architectural decision changes the layout.
 ├── src/                       # Application and private implementation code
 │   └── main.cpp               # Minimal executable entry point
 └── tests/                     # Test targets and test sources
-    └── CMakeLists.txt         # Test-specific build configuration
+    └── CMakeLists.txt         # Test-specific build configuration and Google Test
 ```
 
 The `include/` directory is intentionally present even though the initial
@@ -50,6 +50,10 @@ without network access.
 The imported `c_roblib` target exposes the staged include directory and archive.
 The upstream project currently configures its Google Test dependency even when
 only `c_roblib` is built; its test executable is not built by this project.
+
+Debug test configuration fetches Google Test with CMake `FetchContent` under
+`<build directory>/_deps/`. The checkout is reused until that build directory
+or its dependency cache is removed; Google Test is pinned to `v1.16.0`.
 
 ## Directory responsibilities
 
