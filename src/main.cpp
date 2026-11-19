@@ -15,6 +15,14 @@ int main() {
     std::cout << "*i_ptr is " << *i_ptr << std::endl;
     free(i_ptr);
 
+    // intentionally read out of array bounds
+    int * some_ints = static_cast<int *>(malloc(sizeof(int) * 100));
+
+    for ( int i = 0; i < 200; i++) {
+        some_ints[i] = i; // half of these writes overflow this buffer.
+    } // what will happen with asan??
+
+    // also don't free(some_ints); on purpose
 
 
     return 0;
