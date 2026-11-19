@@ -15,10 +15,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Apple Clang (hosted default)
+          - name: ARM Apple Clang (hosted default)
             cc: clang
             cxx: clang++
-          - name: Homebrew GCC 13
+          - name: ARM Homebrew GCC 13
             cc: gcc-13
             cxx: g++-13
 
@@ -29,6 +29,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install GCC
+        if: matrix.cc == 'gcc-13'
+        run: brew install gcc
 
       - name: Install ncurses build tools
         run: brew install ncurses pkgconf
