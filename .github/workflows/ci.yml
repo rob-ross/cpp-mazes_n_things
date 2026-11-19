@@ -67,3 +67,13 @@ jobs:
 
       - name: Smoke test
         run: ./build/mazes_n_things
+
+      - name: Capture stdout
+        run: ./build/mazes_n_things | tee main-output.txt
+
+      - name: Upload main output
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: main-output-${{ matrix.name }}
+          path: main-output.txt
