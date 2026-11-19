@@ -48,6 +48,10 @@ jobs:
             xcodebuild -version
           fi
 
+      - name: Check GCC ASan runtime
+        if: matrix.cc == 'gcc-14'
+        run: g++-14 -print-file-name=libasan.dylib
+
       - name: Configure
         run: |
           cmake -S . -B build \
