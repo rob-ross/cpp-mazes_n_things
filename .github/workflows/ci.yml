@@ -77,3 +77,7 @@ jobs:
         with:
           name: main-output-${{ matrix.name }}
           path: main-output.txt
+
+      - name: Show main output
+        if: always()
+        run: cat main-output.txt
