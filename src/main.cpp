@@ -22,6 +22,12 @@ void simple_mem_test() {
     // also don't free(some_ints); on purpose
 }
 
+void smoke_test_n_curses() {
+    initscr();
+    erase();
+    refresh();
+    endwin();
+}
 int main() {
     printf("Hello from mazes_n_things!\n");
 
@@ -29,7 +35,8 @@ int main() {
     int x = 5; int y = 2;
     SWAP(x, y);
 
-
+    // try using an ncurses api method
+    smoke_test_n_curses();
 
     return 0;
 }
