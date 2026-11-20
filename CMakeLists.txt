@@ -40,21 +40,23 @@ endif()
 
 # Helpful for debugging (CMake usually does some of this in Debug, but explicit is fine)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${SAN_FLAGS} \
--O0 -g  \
--Wall -Wpedantic -Wextra -Werror -Wshadow -Wimplicit-fallthrough \
--fno-omit-frame-pointer \
--Wno-unknown-attributes \
--Wno-unused-const-variable \
--Wno-unused-parameter \
--Wno-unused-function \
--Wno-unused-variable \
+    -O0 -g  \
+    -Wall -Wpedantic -Wextra -Werror -Wshadow -Wimplicit-fallthrough \
+    -fno-omit-frame-pointer \
+    -Wno-unknown-attributes \
+    -Wno-unused-const-variable \
+    -Wno-unused-parameter \
+    -Wno-unused-function \
+    -Wno-unused-variable \
 ")
 
 
 include(cmake/ncurses.cmake)
 include(cmake/roblib.cmake)
 
-add_executable(mazes_n_things src/main.cpp
+add_executable(mazes_n_things
+        src/main.cpp
+        src/entry_point_01.cpp
 
 )
 target_include_directories(mazes_n_things PRIVATE ${PROJ_INCLUDE_DIR})
