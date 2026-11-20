@@ -65,8 +65,10 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
-      - name: Smoke test
-        run: ./build/mazes_n_things
+      - name: Ncurses Smoke test
+        env:
+          TERM: xterm-256color
+        run: script -q /dev/null ./build/mazes_n_things
 
       - name: Capture stdout
         run: ./build/mazes_n_things | tee main-output.txt
