@@ -40,7 +40,7 @@ endif()
 
 # Helpful for debugging (CMake usually does some of this in Debug, but explicit is fine)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${SAN_FLAGS} \
-    -O0 -g  \
+    -O0 -g -D_XOPEN_SOURCE_EXTENDED=1 \
     -Wall -Wpedantic -Wextra -Werror -Wshadow -Wimplicit-fallthrough \
     -fno-omit-frame-pointer \
     -Wno-unknown-attributes \
@@ -57,6 +57,8 @@ include(cmake/roblib.cmake)
 add_executable(mazes_n_things
         src/main.cpp
         src/entry_point_01.cpp
+        src/ncutils.cpp
+        src/view.cpp
 
 )
 target_include_directories(mazes_n_things PRIVATE ${PROJ_INCLUDE_DIR})
