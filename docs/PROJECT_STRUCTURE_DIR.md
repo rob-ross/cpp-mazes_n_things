@@ -1,4 +1,4 @@
-# Project Structure
+# Project Directory Structure
 
 This document describes the intended source layout for `mazes_n_things`. It is
 the detailed companion to the repository-level [`AGENTS.md`](../AGENTS.md)
@@ -16,7 +16,7 @@ architectural decision changes the layout.
 │   ├── ncurses.cmake          # Prefer Homebrew ncurses; portable fallback
 │   └── roblib.cmake           # Fetch/build/reuse c-roblib
 ├── docs/                      # Design, architecture, and development notes
-│   └── PROJECT_STRUCTURE.md   # This document
+│   └── PROJECT_DIR_STRUCTURE.md   # This document
 ├── include/                   # Public C++ headers owned by this project
 ├── src/                       # Application and private implementation code
 │   └── main.cpp               # Minimal executable entry point
