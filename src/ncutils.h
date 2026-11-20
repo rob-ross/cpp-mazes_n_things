@@ -24,16 +24,28 @@
 #define KEY_ESC 033 // decimal 27, hex 0x1B, octal 033
 #endif
 
-typedef struct {
+struct ClosedRange{
     // represents the closed interval [start,end]
     int start; // inclusive
     int end;   // inclusive
-} ClosedRange;
+} ;
 
-typedef struct {
+struct HalfOpenRange{
     int start; // inclusive
     int end;   // exclusive
-} HalfOpenRange;
+} ;
+
+struct Coordinate {
+    int x;
+    int y;
+} ;
+
+struct Extent {
+    int width;
+    int height;
+};
+
+
 
 
 // -----------------------------------------------------------------
@@ -83,5 +95,8 @@ void disable_bracketed_paste();
 bool init_utf8_locale();
 
 
+// misc
+
+bool x_in_range( int x, HalfOpenRange r );
 
 #endif //MAZES_N_THINGS_NCUTILS_H

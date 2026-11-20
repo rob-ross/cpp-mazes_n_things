@@ -332,3 +332,8 @@ bool init_utf8_locale() {
     }
     return true;
 }
+
+bool x_in_range( int x, HalfOpenRange r ) {
+    if (x >= r.start && x < r.end) return true;
+    return false;
+}
