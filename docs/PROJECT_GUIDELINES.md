@@ -49,6 +49,22 @@ Choose the most specific prefix. For example, use `fix/` for a bug fix that also
 - Do not commit generated build output, local IDE state, or machine-specific files.
 - Branch names should not include issue numbers unless the project adopts an issue-tracking convention that requires them. If issue numbers are later adopted, place them after the prefix, for example `fix/123-invalid-start-position`.
 
+## Issues, Branches, and Pull Requests
+
+When work is tracked by a GitHub issue, connect the issue to the branch and pull request using the issue number. The branch name should include the issue number after the type prefix when practical:
+
+```text
+fix/123-invalid-start-position
+```
+
+The branch name provides a useful human-readable reference, but it does not automatically close the issue. The pull request description is the authoritative connection and should include a closing keyword followed by the issue number:
+
+```text
+Fixes #123
+```
+
+Use `Fixes`, `Closes`, or `Resolves` when the pull request fully addresses the issue. GitHub will close the issue automatically when the pull request is merged into the repository's default branch. Use non-closing references such as `Refs #123` or `Related to #123` when the work is relevant but should not close the issue.
+
 ### Reserved Branches
 
 - `main` is the stable integration branch and should remain buildable.
