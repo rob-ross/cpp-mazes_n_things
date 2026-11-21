@@ -100,33 +100,14 @@ for example Quit events. If the global handler doesn't handle the event, the eve
 */
 
 #include "view.h"
+
 #include <ncurses.h>
-#include <list>
+#include <vector>
 
 #include "ncutils.h"
 
-enum class WidgetType {
-    NONE, CHECKBOX, RB_GROUP, LABEL, INPUT_TEXT, PAD_VIEWPORT
-};
+namespace mazes_n_things {
 
-class Widget {
-    WINDOW *    win{};
-    WidgetType  type{WidgetType::NONE};
-    bool        is_focused{};
-    bool        is_editable{};
-    bool        is_disabled{};
-    bool        is_invisible{};
-    bool        is_animating{};
-};
 
-class Region {
-    Coordinate  origin{}; // with respect to parent Layout
-    Extent      size{};
-    Widget      widget{};
-};
 
-class Layout {
-    WINDOW * root_win{};
-    bool     is_active{};
-    std::list<Region> regions{};
-};
+} // namespace mazes_n_things

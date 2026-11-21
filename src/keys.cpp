@@ -7,3 +7,11 @@
 
 
 #include "keys.h"
+
+namespace mazes_n_things {
+
+
+
+
+
+} //namespace mazes_n_things

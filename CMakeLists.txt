@@ -48,6 +48,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${SAN_FLAGS} \
     -Wno-unused-parameter \
     -Wno-unused-function \
     -Wno-unused-variable \
+    -Wno-unused-but-set-variable \
 ")
 
 
@@ -61,6 +62,7 @@ add_executable(mazes_n_things
         src/view.cpp
         src/menus.cpp
         src/keys.cpp
+        src/colors.cpp
 
 )
 target_include_directories(mazes_n_things PRIVATE ${PROJ_INCLUDE_DIR})
