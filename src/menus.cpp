@@ -55,22 +55,22 @@ constexpr char LINE_SEP_CHAR = '-';
 constexpr char LINE_SEP_STR[2] = {LINE_SEP_CHAR, '\0'};
 
 void draw_menubar(MenuBarModel *mb) {
-    werase(mb->menubar_win);
+    werase(mb->win);
     int menu_count = mb->menu_count;
-    WINDOW * menubar_win = mb->menubar_win;
+    WINDOW * menubar_win = mb->win;
     for (int i = 0; i < menu_count; ++i) {
         wmove( menubar_win, 0, mb->titles[i].range.start);
         wprintw( menubar_win, "%s", mb->titles[i].text.c_str());
     }
-    wnoutrefresh(mb->menubar_win);
+    wnoutrefresh(mb->win);
 }
 
 void resize_menubar(MenuBarModel *mb) {
     int new_rows, new_cols;
     getmaxyx(stdscr, new_rows, new_cols);
-    wresize(mb->menubar_win, 1, new_cols);
+    wresize(mb->win, 1, new_cols);
     draw_menubar(mb);
-    touchwin(mb->menubar_win);
+    touchwin(mb->win);
 }
 
 void draw_menu_separators(MENU *menu) {
@@ -93,7 +93,6 @@ void draw_menu_separators(MENU *menu) {
     wattroff(sub, CPI_MENU_BODY_DISABLED);
     touchwin(menu_win(menu));
 }
-
 
 
 MENU * create_menu(const int items_data_size, ItemNameDesc item_data[], Coordinate origin) {
@@ -158,7 +157,7 @@ MENU * create_menu(const int items_data_size, ItemNameDesc item_data[], Coordina
 
 
 bool pos_in_menubar(Coordinate pos, MenuBarModel *mb) {
-    return wenclose(mb->menubar_win, pos.y, pos.x);
+    return wenclose(mb->win, pos.y, pos.x);
 }
 
 bool pos_in_menu(Coordinate pos, MenuModel *ms ) {
@@ -188,7 +187,7 @@ int menu_index_for_pos(Coordinate pos, MenuBarModel *mb) {
 
 // Returns true if the Coordinate is on a menu title.
 bool pos_on_menu_title(Coordinate pos, MenuBarModel *mb) {
-    WINDOW * mbar_win = mb->menubar_win;
+    WINDOW * mbar_win = mb->win;
     if (pos_in_menubar(pos, mb)) {
         int menu_count = mb->menu_count;
         if (pos.x >= mb->titles[ menu_count - 1].range.end) {
@@ -211,15 +210,15 @@ void highlight_menubar_title(MenuBarModel *mb, int index) {
     // first draw all titles normally to remove any previous highlight
     draw_menubar(mb);
     if (index >=0 && index < mb->menu_count) {
-        wattron(mb->menubar_win, CP_MENU_BAR_HIGHLIGHT);
+        wattron(mb->win, CP_MENU_BAR_HIGHLIGHT);
         mvwprintw(
-            mb->menubar_win,
+            mb->win,
             0,
             mb->titles[index].range.start,
             "%s", mb->titles[index].text.c_str() );
-        wattroff(mb->menubar_win, CP_MENU_BAR_HIGHLIGHT);
+        wattroff(mb->win, CP_MENU_BAR_HIGHLIGHT);
     }
-    wnoutrefresh(mb->menubar_win);
+    wnoutrefresh(mb->win);
 }
 
 void navigate_menu(MENU *menu, int request) {

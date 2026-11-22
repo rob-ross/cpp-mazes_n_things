@@ -63,6 +63,7 @@ add_executable(mazes_n_things
         src/menus.cpp
         src/keys.cpp
         src/colors.cpp
+        src/widget.cpp
 
 )
 target_include_directories(mazes_n_things PRIVATE ${PROJ_INCLUDE_DIR})

@@ -19,10 +19,7 @@
 
 namespace mazes_n_things {
 
-struct TextRange {
-    std::string text;
-    ClosedRange range;
-};
+
 
 struct MenuModel {
     int           index{};
@@ -33,7 +30,7 @@ struct MenuModel {
 
 
 struct MenuBarModel {
-    WINDOW *                    menubar_win{};
+    WINDOW *                    win{};
     int                         menu_count{};
     std::vector<MenuModel>      menus{};
     std::vector<TextRange>      titles;

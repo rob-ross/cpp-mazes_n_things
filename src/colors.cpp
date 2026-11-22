@@ -8,7 +8,8 @@
 
 #include "colors.h"
 #include "ncutils.h"
-
+#include <stdint.h>
+#include <stdlib.h>
 
 
 namespace mazes_n_things {
@@ -103,7 +104,79 @@ void test_init_extended_colors(ClosedRange range) {
     }
 }
 
+// color_content() just reports ncurses' internal color cache. It doesn't qery terminfo
+// to see what colors it has set. xterm-256 has all 256 color indices populated already, but
+// color_content doesn't return these - only the first 8 standard colors.
+// the following methods allow you to determine what the colors at each index actually are
+// at program start.
 
+
+typedef struct {
+    uint8_t r, g, b;
+} RGB;
+
+// Convert any xterm-256 index (0-255) to its standard 8-bit RGB values
+RGB xterm256_to_rgb(uint8_t index) {
+    // 0-15: Standard xterm defaults (note: terminals may theme these)
+    static const RGB ansi16[16] = {
+        {0, 0, 0},       {128, 0, 0},     {0, 128, 0},     {128, 128, 0},
+        {0, 0, 128},     {128, 0, 128},   {0, 128, 128},   {192, 192, 192},
+        {128, 128, 128}, {255, 0, 0},     {0, 255, 0},     {255, 255, 0},
+        {0, 0, 255},     {255, 0, 255},   {0, 255, 255},   {255, 255, 255}
+    };
+    if (index < 16) {
+        return ansi16[index];
+    }
+
+    // 16-231: 6x6x6 RGB color cube
+    if (index < 232) {
+        static const uint8_t levels[6] = {0, 95, 135, 175, 215, 255};
+        uint8_t n = index - 16;
+        uint8_t r = n / 36;
+        uint8_t g = (n % 36) / 6;
+        uint8_t b = n % 6;
+        return {levels[r], levels[g], levels[b]};
+    }
+
+    // 232-255: 24-step grayscale ramp (8, 18, 28, ..., 238)
+    uint8_t gray = 8 + (index - 232) * 10;
+    return {gray, gray, gray};
+}
+
+// Snap a single 8-bit channel (0-255) to the nearest 6x6x6 cube index (0-5)
+static uint8_t nearest_cube_idx(uint8_t v) {
+    if (v < 48)  return 0; // closer to 0 than 95
+    if (v < 115) return 1; // closer to 95 than 135
+    return (v - 35) / 40;  // 135, 175, 215, 255 are evenly spaced by 40
+}
+
+// Convert any 24-bit RGB color to the closest fixed xterm-256 index (16-255)
+uint8_t rgb_to_xterm256(uint8_t r, uint8_t g, uint8_t b) {
+    static const uint8_t levels[6] = {0, 95, 135, 175, 215, 255};
+
+    // Candidate 1: Nearest point in the 6x6x6 color cube (16-231)
+    uint8_t ri = nearest_cube_idx(r);
+    uint8_t gi = nearest_cube_idx(g);
+    uint8_t bi = nearest_cube_idx(b);
+    uint8_t cube_idx = 16 + (36 * ri) + (6 * gi) + bi;
+
+    int dr = r - levels[ri];
+    int dg = g - levels[gi];
+    int db = b - levels[bi];
+    int cube_dist = dr * dr + dg * dg + db * db;
+
+    // Candidate 2: Nearest step in the grayscale ramp (232-255)
+    int avg = (r + g + b) / 3;
+    int gray_step = (avg - 8 + 5) / 10;
+    if (gray_step < 0)  gray_step = 0;
+    if (gray_step > 23) gray_step = 23;
+    uint8_t gray_idx = 232 + gray_step;
+
+    int gv = 8 + gray_step * 10;
+    int gray_dist = (r - gv) * (r - gv) + (g - gv) * (g - gv) + (b - gv) * (b - gv);
+
+    return (gray_dist < cube_dist) ? gray_idx : cube_idx;
+}
 
 
 } // namespace mazes_n_things

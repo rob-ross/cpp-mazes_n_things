@@ -36,8 +36,6 @@ namespace mazes_n_things {
     //      mouse handling
     // -----------------------------------------------------------------
 
-    // calling this will clobber the mouse moved settings. If you need to enable mouse moved events
-    // as well, call set_mouse_moved_enabled(true) after calling set_mouse_enabled(true)
     void set_mouse_enabled(bool enable) {
         if (enable) {
             // 1. Enable ncurses mouse parsing
@@ -69,6 +67,15 @@ namespace mazes_n_things {
             // clear REPORT_MOUSE_POSITION in current mask
             mousemask( cur_mask & ~REPORT_MOUSE_POSITION, nullptr);
         }
+    }
+
+/*
+Shape names: Modern terminals follow standard CSS cursor names such as default, pointer, text, crosshair,
+wait, grab, grabbing, not-allowed, and resize arrows like ew-resize or ns-resize
+*/
+void set_mouse_pointer(const char *shape) {
+        printf("\033]22;%s\033\\", shape);
+        fflush(stdout);
     }
 
     // -----------------------------------------------------------------
@@ -271,7 +278,10 @@ namespace mazes_n_things {
         // - \033[?1000l: Disable Normal Mouse Tracking
         // - \033[?25h:   Ensure cursor is visible
         // - \033[0m:     Reset all text rendition attributes
-        constexpr char reset_seq[] = "\033[?2004l\033[?1003l\033[?1002l\033[?1000l\033[?25h\033[0m";
+        //  \033]22;\033\\ Restore default mouse pointer
+        //
+
+        constexpr char reset_seq[] = "\033[?2004l\033[?1003l\033[?1002l\033[?1000l\033[?25h\033[0m\033]22;\033\\";
         write(STDOUT_FILENO, reset_seq, sizeof(reset_seq) - 1);
         write(STDOUT_FILENO, reset_seq, sizeof(reset_seq) - 1);
 
@@ -380,6 +390,13 @@ namespace mazes_n_things {
         static std::mt19937 generator(std::random_device{}());
         std::uniform_int_distribution<int> distribution{min_inclusive, max_inclusive};
         return distribution(generator);
+    }
+
+    Bounds window_bounds( const WINDOW * win) {
+        return {
+            .position = { .x = getbegx(win), .y = getbegy(win) },
+            .size = { .width = getmaxx(win), .height = getmaxy(win) }
+        };
     }
 
 } // namespace mazes_n_things

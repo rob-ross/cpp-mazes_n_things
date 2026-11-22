@@ -108,6 +108,15 @@ for example Quit events. If the global handler doesn't handle the event, the eve
 
 namespace mazes_n_things {
 
+Layout make_layout() {
+    int rows, cols;
+    getmaxyx(stdscr, rows, cols);
+    // new window same size as stdscr, i.e, the size of the Terminal window screen.
+    WindowPtr root_win{newwin(rows, cols, 0, 0)};
+    Layout new_layout{ .root_window = std::move(root_win) };
+    return new_layout;
+}
+
 
 
 } // namespace mazes_n_things

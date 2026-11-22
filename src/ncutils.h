@@ -10,6 +10,7 @@
 #define MAZES_N_THINGS_NCUTILS_H
 
 #include <ncurses.h>
+#include <string>
 
 namespace mazes_n_things {
 
@@ -26,126 +27,144 @@ namespace mazes_n_things {
 #define KEY_ESC 033 // decimal 27, hex 0x1B, octal 033
 #endif
 
-    /*
-    Range — a region specified by two endpoints.
-    ClosedRange — both endpoints included.
-    HalfOpenRange — start included, end excluded.
-    Span — a region specified by a starting position and length.
+/*
+Range — a region specified by two endpoints.
+ClosedRange — both endpoints included.
+HalfOpenRange — start included, end excluded.
+Span — a region specified by a starting position and length.
 
-    position: Where something is located.
-    origin: The reference point from which its position and dimensions are measured.
-    size: How large something is.
-    dimensions: Its width and height.
+position: Where something is located.
+origin: The reference point from which its position and dimensions are measured.
+size: How large something is.
+dimensions: Its width and height.
 
-    Position generally identifies where something is located relative to some coordinate system.
-    Origin identifies the reference point of a coordinate system or geometric object.
-    You could have a screen position, window-relative position, or parent-relative position,
-    and the member name would remain appropriate.
+Position generally identifies where something is located relative to some coordinate system.
+Origin identifies the reference point of a coordinate system or geometric object.
+You could have a screen position, window-relative position, or parent-relative position,
+and the member name would remain appropriate.
 
-    Rserve "origin" for situations where you're explicitly discussing the reference point of a coordinate system
-    or geometric transformation.
-     */
-
-
-    struct ClosedRange{
-        // represents the closed range [start,end]
-        int start{}; // inclusive
-        int end{};   // inclusive
-
-        [[nodiscard]] int length() const {
-            return end - start + 1;
-        }
-    };
-
-    struct HalfOpenRange{
-        // represents the half-open range [start,end)
-        int start{}; // inclusive
-        int end{};   // exclusive
-
-        [[nodiscard]] int length() const {
-            return end - start;
-        }
-    };
-
-    // Span is a HalfOpenRange but with different semantics, {start, length} vs {start, end}
-    struct Span {
-        int start;
-        int length;
-    };
-
-    struct Coordinate {
-        int x;
-        int y;
-    };
-
-    struct Extent {
-        int width;
-        int height;
-    };
-
-    struct Bounds {
-        Coordinate position;
-        Extent     size;
-    };
+Rserve "origin" for situations where you're explicitly discussing the reference point of a coordinate system
+or geometric transformation.
+ */
 
 
+struct ClosedRange{
+    // represents the closed range [start,end]
+    int start{}; // inclusive
+    int end{};   // inclusive
 
-    // -----------------------------------------------------------------
-    //      mouse handling
-    // -----------------------------------------------------------------
+    [[nodiscard]] int length() const {
+        return end - start + 1;
+    }
+};
 
-    // calling this will clobber the mouse moved settings. If you need to enable mouse moved events
-    // as well, call set_mouse_moved_enabled(true) after calling set_mouse_enabled(true)
-    void set_mouse_enabled(bool enable);
+struct HalfOpenRange{
+    // represents the half-open range [start,end)
+    int start{}; // inclusive
+    int end{};   // exclusive
 
-    // this enables mouse-moved event reporting, including drag events
-    void set_mouse_moved_enabled(bool enable);
+    [[nodiscard]] int length() const {
+        return end - start;
+    }
+};
+
+// Span is a HalfOpenRange but with different semantics, {start, length} vs {start, end}
+struct Span {
+    int start{};
+    int length{};
+};
+
+struct Coordinate {
+    int x{};
+    int y{};
+};
+
+struct Extent {
+    int width{};
+    int height{};
+};
+
+struct Bounds {
+    Coordinate position{};
+    Extent     size{};
+
+    [[nodiscard]] bool contains(const Coordinate pos) const {
+        return (
+            pos.x >= position.x && pos.y >= position.y &&
+            pos.x < ( position.x + size.width) && pos.y < (position.y + size.height)
+        );
+    }
+};
+
+struct TextRange {
+    std::string text{};
+    ClosedRange range{};
+};
 
 
-    // -----------------------------------------------------------------
-    //      copy/paste
-    // -----------------------------------------------------------------
 
-    bool copy_to_system_clipboard(const wchar_t *text, size_t len);
-    size_t paste_from_system_clipboard(wchar_t *dest, size_t max_capacity, bool strip_ctrl_chars);
+// -----------------------------------------------------------------
+//      mouse handling
+// -----------------------------------------------------------------
 
+// calling this will clobber the mouse moved settings. If you need to enable mouse moved events
+// as well, call set_mouse_moved_enabled(true) after calling set_mouse_enabled(true)
+void set_mouse_enabled(bool enable);
 
-    // -----------------------------------------------------------------
-    //      Logging
-    // -----------------------------------------------------------------
+// this enables mouse-moved event reporting, including drag events
+void set_mouse_moved_enabled(bool enable);
 
+/*
+Shape names: Modern terminals follow standard CSS cursor names such as default, pointer, text, crosshair,
+wait, grab, grabbing, not-allowed, and resize arrows like ew-resize or ns-resize
+*/
+void set_mouse_pointer(const char *shape);
 
-    void init_log_file(const char * log_filename);
-    void close_log_file();
-    void log_printf(const char *fmt, ...);
-    void log_printlnf(const char *fmt, ...);
-    void log_printlnf();
-    void fprint_current_date_and_time(FILE* file, bool include_year);
+// -----------------------------------------------------------------
+//      copy/paste
+// -----------------------------------------------------------------
 
-    // -----------------------------------------------------------------
-    //      setup / config / restore ncurses environment
-    // -----------------------------------------------------------------
-
-    void setup_terminal_environment();
-    // must be called *after* initscr()
-    void disable_rep();
-    void enable_bracketed_paste();
-
-    // the cleanup exit handler will call this, so you only would need to call this yourself
-    // if you wanted to temporarily disable this mode during program execution
-    void disable_bracketed_paste();
-
-    // returns true if a utf-8 locale was set, false if not
-    bool init_utf8_locale();
+bool copy_to_system_clipboard(const wchar_t *text, size_t len);
+size_t paste_from_system_clipboard(wchar_t *dest, size_t max_capacity, bool strip_ctrl_chars);
 
 
-    // -----------------------------------------------------------------
-    //   misc
-    // -----------------------------------------------------------------
+// -----------------------------------------------------------------
+//      Logging
+// -----------------------------------------------------------------
 
-    bool in_range(int value, HalfOpenRange range);
-    bool in_range(int value, ClosedRange range);
-    int random_int(int min_inclusive, int max_inclusive);
+
+void init_log_file(const char * log_filename);
+void close_log_file();
+void log_printf(const char *fmt, ...);
+void log_printlnf(const char *fmt, ...);
+void log_printlnf();
+void fprint_current_date_and_time(FILE* file, bool include_year);
+
+// -----------------------------------------------------------------
+//      setup / config / restore ncurses environment
+// -----------------------------------------------------------------
+
+void setup_terminal_environment();
+// must be called *after* initscr()
+void disable_rep();
+void enable_bracketed_paste();
+
+// the cleanup exit handler will call this, so you only would need to call this yourself
+// if you wanted to temporarily disable this mode during program execution
+void disable_bracketed_paste();
+
+// returns true if a utf-8 locale was set, false if not
+bool init_utf8_locale();
+
+
+// -----------------------------------------------------------------
+//   misc
+// -----------------------------------------------------------------
+
+bool in_range(int value, HalfOpenRange range);
+bool in_range(int value, ClosedRange range);
+int random_int(int min_inclusive, int max_inclusive);
+Bounds window_bounds( const WINDOW * win);
 
 } //namespace mazes_n_things
 #endif //MAZES_N_THINGS_NCUTILS_H

@@ -65,6 +65,16 @@ Fixes #123
 
 Use `Fixes`, `Closes`, or `Resolves` when the pull request fully addresses the issue. GitHub will close the issue automatically when the pull request is merged into the repository's default branch. Use non-closing references such as `Refs #123` or `Related to #123` when the work is relevant but should not close the issue.
 
+## Factory and Initialization Naming
+
+Use `make_` for functions that construct and return an object by value without implying dynamic allocation or ownership transfer. For example:
+
+```cpp
+Layout make_layout();
+```
+
+Use `init_` when a function initializes or populates an object supplied by the caller. Avoid `new_` for value-returning functions because it strongly suggests heap allocation and caller-managed lifetime. Use `create_` only when the function's semantics specifically involve resource creation or ownership transfer.
+
 ### Reserved Branches
 
 - `main` is the stable integration branch and should remain buildable.

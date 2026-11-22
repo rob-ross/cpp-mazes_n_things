@@ -6,13 +6,17 @@
 
 #include <ncurses.h>
 #include <panel.h>
-#include <menu.h>
 
 #include <iostream>
 #include <clocale>
 
 #include "ncutils.h"
 #include "colors.h"
+#include "widget.h"
+
+namespace mazes_n_things {
+struct TextRange;
+}
 
 namespace entry_point_1 {
 using namespace mazes_n_things;
@@ -68,7 +72,7 @@ void test_colors() {
     // alpha transparency, so if you have the opacity set below 100% in your terminal settings, when you use these
     // default colors, say as the bgkgrnd in a window, you get transparent windows!
     // Doesn't work in Ghosttty though.
-    assume_default_colors(-1,-1);
+    // assume_default_colors(-1,-1);
 
     log_printf("COLORS=%d, COLOR_PAIRS=%d, \n", COLORS, COLOR_PAIRS);
     // Terminal (xterm-256): COLORS=256, COLOR_PAIRS=65536
@@ -84,7 +88,7 @@ void test_colors() {
     pair_content(0, &fore, &back);
     log_printf("pair_content(0): fore:%d, back:%d \n", fore, back);
 
-    // log_default_colors(0,7);
+    log_default_colors(0,255);
     // test_init_colors({.start = 255, .end = 300 });
     // interesting: starting at 128, it succeeds until 256 then init_extended_color() fails!
     // hypothesis: if you start initing colors below 256, you can't init above 256.
@@ -101,7 +105,86 @@ void test_colors() {
     // now we test the max r,g,b values that can be supplied to this function
     // test_init_extended_colors({.start = 0, .end = 256 });
     // init_extended_colors() still only takes rgb values between 0 and 1000.
-    log_color_pairs( {.start = 0, .end = 3} );
+    // log_color_pairs( {.start = 0, .end = 3} );
+}
+
+constexpr int MENUBAR_HEIGHT = 1; // 1 row tall. width is screen width.
+constexpr int STATUS_REGION_HEIGHT = 3; // height is 2 but we need 1 row for border
+
+Layout create_layout() {
+    int rows, cols;
+    getmaxyx(stdscr, rows, cols);
+    WindowPtr root_win{newwin(rows, cols, 0, 0)}; // full screen window (same size as terminal window)
+    WINDOW* root_window = root_win.get();
+    keypad(root_window, true);
+    WindowPtr menubar_win{derwin(root_window, 1, cols, 0, 0)};
+    WindowPtr status_win{derwin(root_window, STATUS_REGION_HEIGHT, cols,
+                               rows - STATUS_REGION_HEIGHT - 1, 0)};
+
+    int mainw_height = rows - MENUBAR_HEIGHT - STATUS_REGION_HEIGHT;
+    int mainw_y = MENUBAR_HEIGHT;
+
+    WindowPtr main_win{derwin(root_window, mainw_height, cols, mainw_y, 0)};
+
+    // create MenuBarModel
+    std::vector<TextRange> titles{
+        {.text = "App",  .range = { .start =  2, .end =  4 } },
+        {.text = "File", .range = { .start =  7, .end = 10 } },
+        {.text = "Edit", .range = { .start = 13, .end = 16 } },
+        {.text = "View", .range = { .start = 19, .end = 22 } },
+        {.text = "Help", .range = { .start = 25, .end = 28 } }
+    };
+    MenuBarModel mbm{ .titles = titles };
+    MenuBarView  mbv{ };
+    MenuBarController mbc{};
+
+    using MenuBarWidget = Widget<MenuBarModel, MenuBarView, MenuBarController>;
+    auto mb_widget = std::make_unique<MenuBarWidget>(mbm, mbv, mbc);
+
+    Layout layout;
+    layout.root_window = std::move(root_win);
+    Bounds menu_bounds = window_bounds(menubar_win.get());
+    layout.regions.emplace_back(
+        std::move(menubar_win),
+        std::move(mb_widget),
+        menu_bounds
+    );
+
+
+    return layout;
+}
+
+void main_event_loop(Layout& layout) {
+    WINDOW * root_win = layout.root_window.get();
+    while ( true ) {
+        wint_t ch;
+        int ret = wget_wch(root_win, &ch); // blocks
+        if (ret != ERR ) {
+            log_printlnf("ret = '%o'", ch);
+            if (ret == OK && ch == CTRL('q')) {
+                break; // quit event loop
+            }
+
+            // if the event is a keyboard event, forward it to the currently focused Region.
+            // if the Region can't handle it, we try to handle it here. Otherwise, the event is unhandled.
+            // if the event is a mouse button event, we see if we can handle it first, or if we need to
+            // forward it to a Region, not necessarily the focused region. A mouse click in a non-focused Region
+            // may cause that Region to be focused.
+            if (ret == OK ) {
+                if ( ch == KEY_MOUSE) {
+                    MEVENT event;
+                    if (getmouse(&event) == OK) {
+                        // determine if a mouse click is in a Region, and if so, forward that event
+                    }
+                } else {
+
+                }
+            } else if (ret == KEY_CODE_YES) {
+
+            }
+        }
+
+    }
 }
 
 int main(int argc, const char * logfile_path) {
@@ -155,12 +238,13 @@ int main(int argc, const char * logfile_path) {
     mouseinterval(25); // in ms. default is ~167ms.
 
     // if needed : set_mouse_enabled(true); enable_bracketed_paste(input_win)
+    set_mouse_enabled(true);
     // nodelay/notimeout/keypad (or keyok) per window as needed
     // if using color, start_color(), create colors and color pairs
 
     GlobalState gstate{};
 
-    test_colors();
+    // test_colors();
 
     if (try_start_color(&gstate)) {
         init_app_colors();
@@ -176,13 +260,37 @@ int main(int argc, const char * logfile_path) {
     wrefresh(stdscr);
 
     log_printf("Initialization completed\n");
-    wbkgd(stdscr, COLOR_PAIR(0));  // now has "default" colors assigned
-    move(0,0);
-    getch();
-    printw("✓ Hello from ncurses! logfile_path=%s\n", logfile_path);
-    addwstr(L"This is a wide string ✓"); //U+274C
-    getch(); // wait for input
+    // background now has "default" colors assigned
+    // in Terminal, this includes support for transparency. If the default terminal colors include
+    // transparency, those are honored. This doesn't work in Ghosttty though.
+    wbkgd(stdscr, COLOR_PAIR(0));
 
+    // create the Layout
+    // this Layout will have:
+    // menu bar region
+    // main region
+    // text input region
+    // status bar region
+    // == 4 regions
+    Layout main_layout = create_layout();
+
+    main_layout.draw();
+    doupdate(); // copies contents of newscr to curscr and the Terminal screen
+
+
+
+
+
+    WINDOW* win = main_layout.root_window.get();
+
+    wmove( win, 10,0);
+    wgetch(win);
+    wprintw(win, "✓ Hello from ncurses! logfile_path=%s\n", logfile_path);
+    waddwstr(win, L"This is a wide string ✓"); //U+274C
+    wgetch(win); // wait for input
+
+    // start main event loop
+    main_event_loop(main_layout);
 
 
     // Normal exit: atexit(cleanup_terminal) automatically performs
