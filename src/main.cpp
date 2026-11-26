@@ -5,7 +5,7 @@
 //  Copyright (c) 2026.  All rights reserved.
 
 
-
+#include "ncutils.h"
 
 // declares that there is a namespace `entry_point_1` and contains `int main();`
 namespace entry_point_1 {
@@ -16,6 +16,8 @@ namespace entry_point_1 {
 
 // we can use the single main entry point to route based on command-line args
 int main(int argc, char *argv[]) {
+    mazes_n_things::init_utf8_locale();  // ensures utf-8 mode enabled
+
     const char * logfile_path = argc > 1 ? argv[1] : nullptr;
     int ret = entry_point_1::main(argc, logfile_path);
 

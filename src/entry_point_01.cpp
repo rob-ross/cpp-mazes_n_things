@@ -318,7 +318,6 @@ void main_event_loop(Layout& layout) {
 
 
 int main(int argc, const char * logfile_path) {
-    init_utf8_locale();  // ensures utf-8 mode enabled
     setup_terminal_environment();
 
     // todo temp debug during development so we don't have to manually pass a logfile name all the time
