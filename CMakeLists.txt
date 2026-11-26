@@ -34,8 +34,10 @@ if(APPLE
         AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
     message(STATUS "Disabling AddressSanitizer for GCC on Apple Silicon: libasan is unavailable")
     set(SAN_FLAGS "")
+elseif(APPLE)
+    set(SAN_FLAGS "-fsanitize=address -fsanitize=leak")
 else()
-    set(SAN_FLAGS "-fsanitize=address")
+    set(SAN_FLAGS "")
 endif()
 
 # Helpful for debugging (CMake usually does some of this in Debug, but explicit is fine)
