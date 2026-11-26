@@ -45,7 +45,7 @@ rather than using symbols.
 #include <panel.h>
 #include <cstdlib>
 #include <cassert>
-
+#include <string.h> // for strdup
 #include "ncutils.h"
 #include "colors.h"
 
