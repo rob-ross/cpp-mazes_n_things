@@ -10,6 +10,7 @@
 #include "ncutils.h"
 #include <stdint.h>
 #include <stdlib.h>
+#include <cstring>
 
 
 namespace mazes_n_things {
@@ -17,7 +18,7 @@ namespace mazes_n_things {
 // returns true if the env reports that it supports truecolor
 bool has_truecolor() {
     const char *ct = getenv("COLORTERM");
-    return ct && (strcmp(ct, "truecolor") == 0 || strcmp(ct, "24bit") == 0) && COLORS >= 16777216;
+    return ct && (std::strcmp(ct, "truecolor") == 0 || std::strcmp(ct, "24bit") == 0) && COLORS >= 16777216;
 }
 
 // -----------------------------------------------------------------
@@ -27,7 +28,7 @@ bool has_truecolor() {
 // write the first 8 color id components to the logfile.
 void log_default_colors(short start_inclusive, short end_inclusive) {
     const auto to_print = static_cast<short>(end_inclusive - start_inclusive + 1);
-    log_printlnf("");
+    log_printf("\n");
     log_printf("log_default_colors: first %hd default colors are:\n", to_print);
     for (short i{start_inclusive};  i <= end_inclusive; i++ ) {
         ColorContent c = ColorContent::content(i);
@@ -40,7 +41,7 @@ void log_default_colors(short start_inclusive, short end_inclusive) {
 // we'll see if they are the same for the first 256 color ids.
 void log_extended_colors() {
     const int to_print = 16;
-    log_printlnf("");
+    log_printf("\n");
     log_printf("log_extended_colors: first %d default extended colors are:\n", to_print);
     for (int i{};  i < to_print; i++ ) {
         ColorContent c = ColorContent::extendedContent(i);
@@ -49,7 +50,7 @@ void log_extended_colors() {
 }
 
 void log_color_pairs(ClosedRange range) {
-    log_printlnf("");
+    log_printf("\n");
     log_printf("log_color_pairs: first %d color pairs are:\n", range.length() );
     for (int i{range.start};  i < range.length(); i++ ) {
         int f, b;
