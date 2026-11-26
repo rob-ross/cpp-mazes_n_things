@@ -267,7 +267,7 @@ void set_mouse_pointer(const char *shape) {
 
     // for restoring Terminal state even when exiting abnormally
     static struct termios g_orig_termios{};
-    static bool g_terminal_captured{};
+    static volatile sig_atomic_t g_terminal_captured{};
 
 
     static void cleanup_terminal() {
@@ -301,10 +301,26 @@ void set_mouse_pointer(const char *shape) {
         cleanup_terminal();
     }
 
+    // Only async-signal-safe operations belong in this path.  In particular,
+    // do not call ncurses (endwin/isendwin) after a fatal signal.
+    static void restore_terminal_from_signal() {
+        constexpr char reset_seq[] = "\033[?2004l\033[?1003l\033[?1002l\033[?1000l\033[?25h\033[0m\033]22;\033\\";
+        const int saved_errno = errno;
+        (void) write(STDOUT_FILENO, reset_seq, sizeof(reset_seq) - 1);
+        if (g_terminal_captured) {
+            (void) tcsetattr(STDIN_FILENO, TCSANOW, &g_orig_termios);
+            g_terminal_captured = 0;
+        }
+        errno = saved_errno;
+    }
+
     static void signal_handler(int signum) {
-        cleanup_terminal();
-        // Re-raise or exit cleanly
-        _exit(128 + signum);
+        restore_terminal_from_signal();
+
+        // Preserve the original signal disposition and re-raise the signal so
+        // ASan can finish its report and the shell receives the real status.
+        signal(signum, SIG_DFL);
+        raise(signum);
     }
 
     void setup_terminal_environment() {
@@ -320,11 +336,15 @@ void set_mouse_pointer(const char *shape) {
         struct sigaction sa{};
         sa.sa_handler = signal_handler;
         sigemptyset(&sa.sa_mask);
-        sa.sa_flags = 0;
+        sa.sa_flags = SA_RESETHAND;
 
         sigaction(SIGINT, &sa, nullptr);   // Ctrl+C, ignored in raw() mode
         sigaction(SIGTERM, &sa, nullptr);  // Termination request
         sigaction(SIGHUP, &sa, nullptr);   // Terminal closed
+        sigaction(SIGABRT, &sa, nullptr);  // ASan and abort() termination
+        sigaction(SIGSEGV, &sa, nullptr);  // invalid memory access
+        sigaction(SIGBUS, &sa, nullptr);
+        sigaction(SIGILL, &sa, nullptr);
     }
 
 
