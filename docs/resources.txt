@@ -1,0 +1,17 @@
+interesting fonts:
+
+icons-in-terminal
+
+icons-in-terminal.ttf is a fallback font from the icons-in-terminal project that displays 3,618 terminal icons without patching your primary font.
+
+https://github.com/sebastiencs/icons-in-terminal
+
+
+Nerd Fonts
+
+If you are on macOS, Windows, or a modern Linux terminal that handles font fallback natively without fontconfig overrides, Nerd Fonts offers a standalone SymbolsNerdFont-Regular.ttf (over 10,600 icons) that serves the same unpatched fallback purpose and is more widely supported by modern CLI tools like Starship, Oh My Posh, and eza
+
+https://www.nerdfonts.com
+
+
+OSC (operating system command) 52 Esc sequences : copy & paste system clipboards

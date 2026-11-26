@@ -89,7 +89,7 @@ secrets.*
 
 # Log files
 *.log
-logs/
+src/logs/
 
 # compiled files
 *.out

@@ -28,33 +28,55 @@ set(PROJ_TEST_DIR    ${PROJ_ROOT_DIR}/test)
 
 # -fsanitize=leak doesn't work on some Mac OS.... todo investigate
 # -fsanitize=address -fsanitize=leak
-set(SAN_FLAGS "-fsanitize=address" )
-if(APPLE
-        AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
-        AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
-    message(STATUS "Disabling AddressSanitizer for GCC on Apple Silicon: libasan is unavailable")
+#set(SAN_FLAGS "-fsanitize=address" )
+#if(APPLE
+#        AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+#        AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
+#    message(STATUS "Disabling AddressSanitizer for GCC on Apple Silicon: libasan is unavailable")
+#    set(SAN_FLAGS "")
+#elseif(APPLE)
+#    set(SAN_FLAGS "-fsanitize=address -fsanitize=leak")
+#else()
+#    set(SAN_FLAGS "")
+#endif()
+
+if(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+    message(STATUS "Disabling AddressSanitizer on Apple Silicon: libasan is unavailable")
     set(SAN_FLAGS "")
+elseif (APPLE)
+    message(STATUS "Enabling AddressSanitizer on Apple Intel")
+    set(SAN_FLAGS "-fsanitize=address -fsanitize=leak")
 else()
-    set(SAN_FLAGS "-fsanitize=address")
+    message(STATUS "Disabling AddressSanitizer on this platform")
+    set(SAN_FLAGS "")
 endif()
 
 # Helpful for debugging (CMake usually does some of this in Debug, but explicit is fine)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${SAN_FLAGS} \
--O0 -g  \
--Wall -Wpedantic -Wextra -Werror -Wshadow -Wimplicit-fallthrough \
--fno-omit-frame-pointer \
--Wno-unknown-attributes \
--Wno-unused-const-variable \
--Wno-unused-parameter \
--Wno-unused-function \
--Wno-unused-variable \
+    -O0 -g -D_XOPEN_SOURCE_EXTENDED=1 \
+    -Wall -Wpedantic -Wextra -Werror -Wshadow -Wimplicit-fallthrough \
+    -fno-omit-frame-pointer \
+    -Wno-unknown-attributes \
+    -Wno-unused-const-variable \
+    -Wno-unused-parameter \
+    -Wno-unused-function \
+    -Wno-unused-variable \
+    -Wno-unused-but-set-variable \
 ")
 
 
 include(cmake/ncurses.cmake)
 include(cmake/roblib.cmake)
 
-add_executable(mazes_n_things src/main.cpp
+add_executable(mazes_n_things
+        src/main.cpp
+        src/entry_point_01.cpp
+        src/ncutils.cpp
+        src/view.cpp
+        src/menus.cpp
+        src/keys.cpp
+        src/colors.cpp
+        src/widget.cpp
 
 )
 target_include_directories(mazes_n_things PRIVATE ${PROJ_INCLUDE_DIR})

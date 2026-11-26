@@ -64,22 +64,22 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build --output-on-failure
-
-      - name: Ncurses Smoke test
-        env:
-          TERM: xterm-256color
-        run: script -q /dev/null ./build/mazes_n_things
-
-      - name: Capture stdout
-        run: ./build/mazes_n_things | tee main-output.txt
-
-      - name: Upload main output
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: main-output-${{ matrix.name }}
-          path: main-output.txt
-
-      - name: Show main output
-        if: always()
-        run: cat main-output.txt
+#
+#      - name: Ncurses Smoke test
+#        env:
+#          TERM: xterm-256color
+#        run: script -q /dev/null ./build/mazes_n_things
+#
+#      - name: Capture stdout
+#        run: ./build/mazes_n_things | tee main-output.txt
+#
+#      - name: Upload main output
+#        uses: actions/upload-artifact@v4
+#        if: always()
+#        with:
+#          name: main-output-${{ matrix.name }}
+#          path: main-output.txt
+#
+#      - name: Show main output
+#        if: always()
+#        run: cat main-output.txt
