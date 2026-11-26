@@ -78,10 +78,10 @@ public:
 
     Widget() = default;
 
-    Widget(const Model &model, const View &view, const Controller &controller)
-        : model(model),
-          view(view),
-          controller(controller) {
+    Widget(const Model &model_, const View &view_, const Controller &controller_)
+        : model(model_),
+          view(view_),
+          controller(controller_) {
     }
 
     void handle_key(int key) override {
