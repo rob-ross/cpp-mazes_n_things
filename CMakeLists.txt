@@ -27,25 +27,13 @@ set(PROJ_TEST_DIR    ${PROJ_ROOT_DIR}/test)
 
 
 # -fsanitize=leak doesn't work on some Mac OS.... todo investigate
-# -fsanitize=address -fsanitize=leak
-#set(SAN_FLAGS "-fsanitize=address" )
-#if(APPLE
-#        AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
-#        AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
-#    message(STATUS "Disabling AddressSanitizer for GCC on Apple Silicon: libasan is unavailable")
-#    set(SAN_FLAGS "")
-#elseif(APPLE)
-#    set(SAN_FLAGS "-fsanitize=address -fsanitize=leak")
-#else()
-#    set(SAN_FLAGS "")
-#endif()
 
 if(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
     message(STATUS "Disabling AddressSanitizer on Apple Silicon: libasan is unavailable")
     set(SAN_FLAGS "")
 elseif (APPLE)
     message(STATUS "Enabling AddressSanitizer on Apple Intel")
-    set(SAN_FLAGS "-fsanitize=address -fsanitize=leak")
+    set(SAN_FLAGS "-fsanitize=address")
 else()
     message(STATUS "Disabling AddressSanitizer on this platform")
     set(SAN_FLAGS "")
