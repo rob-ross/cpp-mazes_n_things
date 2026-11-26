@@ -40,7 +40,7 @@ namespace mazes_n_things {
         if (enable) {
             // 1. Enable ncurses mouse parsing
             mousemask(ALL_MOUSE_EVENTS, nullptr);
-            mouseinterval(0);
+            mouseinterval(25);
             // 2. Instruct terminal emulator to capture clicks
             printf("\033[?1000h");
             fflush(stdout);

@@ -32,6 +32,8 @@ Widget controllers: input-to-model logic.
 #include "ncutils.h"
 
 namespace mazes_n_things {
+struct Layout;
+struct MenuBarModel;
 struct TextRange;
 
 using Point = Coordinate;
@@ -41,12 +43,14 @@ using Point = Coordinate;
 struct WidgetContext {
     Bounds bounds;
     WINDOW* win{};
+    // void * state{nullptr};
 };
 
 struct IWidget {
     virtual ~IWidget() = default;
     virtual void handle_key(int key) = 0;
     virtual void draw(const WidgetContext&) = 0;
+    virtual bool handle_mouse_event(const WidgetContext& context, MEVENT event ) = 0;
 };
 
 struct WindowDeleter {
@@ -81,10 +85,14 @@ public:
     }
 
     void handle_key(int key) override {
-        controller.handle_key(key, model);
+        controller.handle_key( model, key );
     }
 
-    void draw(const WidgetContext& context) override {
+    bool handle_mouse_event(const WidgetContext& context, MEVENT event) override {
+        return controller.handle_mouse_event( context, model, event );
+    }
+
+    void draw( const WidgetContext& context) override {
         view.draw(context, model);
     }
 };
@@ -92,11 +100,19 @@ public:
 struct Region {
     WindowPtr window;
     std::unique_ptr<IWidget> widget;
+    // Use region.layout.lock() when temporarily accessing the parent, and check whether the resulting shared_ptr is non-null.
+    std::weak_ptr<Layout> layout;
     Bounds bounds{};
 
-    Region(WindowPtr win, std::unique_ptr<IWidget> w, const Bounds region_bounds)
-        : window(std::move(win)), widget(std::move(w)), bounds(region_bounds) {
-    }
+    Region(
+        WindowPtr win,
+        std::unique_ptr<IWidget> w,
+        std::weak_ptr<Layout> l,
+        const Bounds region_bounds )
+          : window(std::move(win)),
+            widget(std::move(w)),
+            layout(std::move(l)),
+            bounds(region_bounds) { }
 
     Region(const Region&) = delete;
     Region& operator=(const Region&) = delete;
@@ -106,6 +122,10 @@ struct Region {
     [[nodiscard]] bool contains(Point p) const {
         return bounds.contains(p);
     }
+
+    [[nodiscard]] WidgetContext make_context() const {
+        return { .bounds = bounds, .win = window.get() };
+    }
 };
 
 struct Layout {
@@ -113,6 +133,7 @@ struct Layout {
     std::vector<Region> regions{};
     std::size_t focused_region{};
     bool is_active{};
+
 
     void handle_key(int key) {
         if (focused_region < regions.size() && regions[focused_region].widget)
@@ -122,73 +143,32 @@ struct Layout {
     void draw() {
         for (auto& region : regions){
             if (region.widget) {
-                region.widget->draw({ .bounds = region.bounds, .win = region.window.get() } );
+                region.widget->draw( region.make_context() );
             }
         }
     }
-};
 
+    [[nodiscard]] bool handle_mouse_event(MEVENT event) const {
+        bool handled = false;
+        for (auto& region: regions ) {
+            if (region.contains( {.x = event.x, .y = event.y } )) {
+                if (region.widget) {
+                    handled =  region.widget->handle_mouse_event( region.make_context(), event );
+                    if (handled) {
+                        wnoutrefresh(root_window.get());
+                    }
+                }
+                break;
+            }
+        }
 
-// -----------------------------------------------------------------
-//   MENUS
-// -----------------------------------------------------------------
-
-struct MenuItemModel {
-    std::string name;
-    std::string description;
-    int shortcut{};
-};
-
-struct MenuModel {
-    std::string title;
-    std::vector<MenuItemModel> items;
-    std::size_t selected_item{};
-};
-
-struct MenuBarModel {
-    std::vector<TextRange> titles{};
-    std::vector<MenuModel>  menus{};
-    int             selected_menu{};
-};
-
-struct MenuBarView {
-    static void draw(const WidgetContext& context, const MenuBarModel& model) ;
-};
-
-struct MenuBarController {
-    static void handle_key(int key, MenuBarModel& model) {
-
+        return handled;
     }
 };
-
 
 
 } // namespace mazes_n_things
 
 #endif //MAZES_N_THINGS_WIDGET_H
 
-/*
-Questions:
-2. I could not get your code to work when I was using a unique_ptr in Region for the Widget. I had to revert to a
-    raw pointer. There are several issues I have. First is not completely understanding the lifecycle and copy
-    mechanisms on C++. I don't know what containers copy elements, or if they do a deep or shallow copy. I want to
-    factor the Layout creation code into another function called from main(). But that introduces a big memory complication.
-    The Layout will become a large graph with many Regions and Widgets all with their various state models and ncurses
-    view components. So if I create this as I had previously in make_layout(), I was returning a Layout by value.
-    I don't even know how that would work with a complicated object graph. Would my Layout object be completely copied
-    on the stack for the caller to use after the method call? Or would it leave dangling pointers in the graph?
-    And even if it *does* do deep copies, it's incredibly wasteful of stack space and inefficient.
-    So I'm not sure what the best implementation is for a layout creation function. I currently create an empty Layout
-    in main() and pass it by reference to init_layout() which populates it. I'm still doing copies I think when I push_back
-    a Region on the vector, with its complex object graph of a Widget with 3 sub objects, etc.
 
-    I could implement it as a "create_layout" function, and create everything on the heap and store everything by pointer
-    in the various MVC structures. (Raw pointers for now, which I would need to migrate to smart pointers for
-    memory management). Then I wouldn't need to worry about copying. Everything is created once on the heap and the same
-    graph is returned to the caller. But, that's a lot of little allocated objects to keep track of. This is another
-    reason why I need to learn more about object lifecycles in C++, so I can pick the best path of stack vs heap
-    creation to take advantage of the automagical copying of C++ behind the scenes.
-
-
-
-*/

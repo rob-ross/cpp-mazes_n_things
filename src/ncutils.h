@@ -27,6 +27,8 @@ namespace mazes_n_things {
 #define KEY_ESC 033 // decimal 27, hex 0x1B, octal 033
 #endif
 
+constexpr int MAX_ASCII = 0x1F;
+
 /*
 Range — a region specified by two endpoints.
 ClosedRange — both endpoints included.
@@ -135,8 +137,16 @@ size_t paste_from_system_clipboard(wchar_t *dest, size_t max_capacity, bool stri
 
 void init_log_file(const char * log_filename);
 void close_log_file();
-void log_printf(const char *fmt, ...);
-void log_printlnf(const char *fmt, ...);
+
+#if defined(__GNUC__) || defined(__clang__)
+#define MAZES_PRINTF_FORMAT(fmt, args) __attribute__((format(printf, fmt, args)))
+#else
+#define MAZES_PRINTF_FORMAT(fmt, args)
+#endif
+
+void log_printf(const char *fmt, ...) MAZES_PRINTF_FORMAT(1, 2);
+void log_printlnf(const char *fmt, ...) MAZES_PRINTF_FORMAT(1, 2);
+
 void log_printlnf();
 void fprint_current_date_and_time(FILE* file, bool include_year);
 

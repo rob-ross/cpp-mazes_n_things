@@ -14,6 +14,12 @@
 
 namespace mazes_n_things {
 
+// returns true if the env reports that it supports truecolor
+bool has_truecolor() {
+    const char *ct = getenv("COLORTERM");
+    return ct && (strcmp(ct, "truecolor") == 0 || strcmp(ct, "24bit") == 0) && COLORS >= 16777216;
+}
+
 // -----------------------------------------------------------------
 //   Color Tests
 // -----------------------------------------------------------------
@@ -110,7 +116,20 @@ void test_init_extended_colors(ClosedRange range) {
 // the following methods allow you to determine what the colors at each index actually are
 // at program start.
 
+/*
 
+    Notice how rgb_to_xterm256() compares Euclidean RGB distance against both the 6×6×6 cube and
+    the 24-step grayscale ramp. Because the 6×6×6 cube only has 6 gray points (0, 95, 135, 175, 215, 255),
+    checking the grayscale ramp prevents neutral grays (like #262626 or #4e4e4e) from getting tinted or
+    overly quantized on 256-color terminals like Terminal.app.
+
+    Next steps:
+    • How to wrap this into a unified color pair allocator that uses init_extended_pair in Ghostty
+    and automatically falls back to rgb_to_xterm256 + init_pair in Terminal.app?
+    • How ncurses handles use_default_colors() (color -1) if you want transparent terminal backgrounds
+    alongside 24-bit or 256 colors?
+
+*/
 typedef struct {
     uint8_t r, g, b;
 } RGB;

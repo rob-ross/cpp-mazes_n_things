@@ -1,0 +1,24 @@
+
+Widget uses MVC pattern and composition to encapsulate objects that handle input, draw, and define state for on-screen objects like menu bars, status panels, viewports, etc.
+
+Menubar widget is composed of:
+
+MenuBarModel
+MenuBarView
+MenuBarController
+
+
+A MenuBarModel contains a vector<MenuModel>, one entry for each menu in the menu bar
+
+A MenuModel contains vector<MenuItemModel>, one entry for each menu item in the menu
+
+Views and Controllers should ideally be stateless and get passed whatever context they need.
+
+E.g., MenuBarView::draw(const WidgetContext& context, const MenuBarModel& model)
+MenuBarController:handle_mouse_event( const WidgetContext& context, MenuBarModel& model, const MEVENT &event )
+
+
+A MenuPopup wraps a MenuModel and its associated ncurses MENU* which persists for the app duration. It handles drawing menus and handling input.
+
+
+

@@ -44,34 +44,41 @@ rather than using symbols.
 #include <ncurses.h>
 #include <panel.h>
 #include <cstdlib>
+#include <cassert>
 
 #include "ncutils.h"
 #include "colors.h"
 
 namespace mazes_n_things {
 
+
 // using namespace mazes_n_things;
 constexpr char LINE_SEP_CHAR = '-';
 constexpr char LINE_SEP_STR[2] = {LINE_SEP_CHAR, '\0'};
 
-void draw_menubar(MenuBarModel *mb) {
-    werase(mb->win);
-    int menu_count = mb->menu_count;
-    WINDOW * menubar_win = mb->win;
-    for (int i = 0; i < menu_count; ++i) {
-        wmove( menubar_win, 0, mb->titles[i].range.start);
-        wprintw( menubar_win, "%s", mb->titles[i].text.c_str());
+
+void MenuBarView::draw(const WidgetContext& context, const MenuBarModel& model) {
+    WINDOW * menubar_win = context.win;
+    werase(menubar_win);
+    for (const auto& title : model.titles) {
+        wmove(menubar_win, 0, title.range.start);
+        wprintw(menubar_win, "%s", title.text.c_str());
     }
-    wnoutrefresh(mb->win);
+    wnoutrefresh(context.win);
+    if (is_subwin(context.win)) {
+        WINDOW * parent = wgetparent(context.win);
+        touchwin(parent);
+    }
+
 }
 
-void resize_menubar(MenuBarModel *mb) {
+/*void resize_menubar(MenuBarModel *mb) {
     int new_rows, new_cols;
     getmaxyx(stdscr, new_rows, new_cols);
     wresize(mb->win, 1, new_cols);
     draw_menubar(mb);
     touchwin(mb->win);
-}
+}*/
 
 void draw_menu_separators(MENU *menu) {
     WINDOW *sub = menu_sub(menu);
@@ -95,13 +102,13 @@ void draw_menu_separators(MENU *menu) {
 }
 
 
-MENU * create_menu(const int items_data_size, ItemNameDesc item_data[], Coordinate origin) {
+MENU * create_menu(const std::vector<MenuItemModel> &item_data, Coordinate origin) {
 
-    // we add 1 to the size of item_data for the nullptr to terminate the item list
-    const int items_count = items_data_size + 1;
+    // we add 1 to the size of item_data for the nullptr to terminate the items array new_menu() argument.
+    const size_t items_count = item_data.size() + 1;
     ITEM **items = static_cast<ITEM **>(std::calloc(items_count, sizeof(ITEM*)));
 
-    for (int i = 0; i < items_data_size; ++i) {
+    for (size_t i = 0; i < item_data.size(); ++i) {
         const char * name;
         if ( item_data[i].name[0] == LINE_SEP_CHAR ) {
             name = LINE_SEP_STR; // we share this one instance for all line separator items. We replace it below
@@ -149,44 +156,41 @@ MENU * create_menu(const int items_data_size, ItemNameDesc item_data[], Coordina
     set_menu_win(menu, menuwin); // The container window
     set_menu_sub(menu, menu_sub); // The actual text viewport
 
-    // Post (internally draw) the menu so it's primed and ready
-    post_menu(menu);
-
     return menu;
 }
 
 
-bool pos_in_menubar(Coordinate pos, MenuBarModel *mb) {
-    return wenclose(mb->win, pos.y, pos.x);
-}
+/*bool pos_in_menubar(Coordinate pos, MenuBarModel& mb) {
+    return wenclose(mb.win, pos.y, pos.x);
+}*/
 
-bool pos_in_menu(Coordinate pos, MenuModel *ms ) {
-    WINDOW * mwin = menu_win(ms->menu);
-    return wenclose(mwin, pos.y, pos.x);
+bool pos_in_popup_menu( const Coordinate pos, const MenuPopup& popup ) {
+    return window_bounds( popup.window()).contains(pos);
 }
 
 
 // Returns the index of the menu title for the given pos, or -1 if no menu title at that pos.
-int menu_index_for_pos(Coordinate pos, MenuBarModel *mb) {
-    if (pos_in_menubar(pos, mb)) {
-        int menu_count = mb->menu_count;
-        if (pos.x >= mb->titles[ menu_count - 1].range.end) {
-            return -1; // click in menubar but not on any menu title
-        }
-        for (int i = 0; i < menu_count; ++i) {
-            ClosedRange r = mb->titles[i].range;
-            if (in_range(pos.x, r)) {
-                // click in a menu title
-                return i;
-            }
+static int menu_index_for_pos(Coordinate pos, MenuBarModel& mb) {
+    const int menu_count = static_cast<int>(mb.titles.size());
+    if (pos.x > mb.titles[ menu_count - 1].range.end + 1) {
+        return -1; // click in menubar but not on any menu title
+    }
+    for (int i = 0; i < menu_count; ++i) {
+        ClosedRange r = mb.titles[i].range;
+        // we grow the hit area by one col on each side to make it easier to select a menu title.
+        // this works because we add 2 blank cols before each title.
+        r.start -= 1;
+        r.end +=1;
+        if (in_range(pos.x, r)) {
+            // click in a menu title
+            return i;
         }
     }
-
     return -1;
 }
 
 // Returns true if the Coordinate is on a menu title.
-bool pos_on_menu_title(Coordinate pos, MenuBarModel *mb) {
+/*bool pos_on_menu_title(Coordinate pos, MenuBarModel *mb) {
     WINDOW * mbar_win = mb->win;
     if (pos_in_menubar(pos, mb)) {
         int menu_count = mb->menu_count;
@@ -202,23 +206,23 @@ bool pos_on_menu_title(Coordinate pos, MenuBarModel *mb) {
         }
     }
     return false;
-}
+}*/
 
-
-
-void highlight_menubar_title(MenuBarModel *mb, int index) {
-    // first draw all titles normally to remove any previous highlight
-    draw_menubar(mb);
-    if (index >=0 && index < mb->menu_count) {
-        wattron(mb->win, CP_MENU_BAR_HIGHLIGHT);
+// draw the menu bar title with index `index` using the menu bar's CP_MENU_BAR_HIGHLIGHT color pair.
+static void highlight_menubar_title( const WidgetContext& context, MenuBarModel& mb, int index) {
+    const int menu_count = static_cast<int>(mb.titles.size());
+    WINDOW * win = context.win;
+    MenuBarView::draw(context, mb); // first draw menubar with no highlighting
+    if (index >=0 && index < menu_count) {
+        wattron(win, CP_MENU_BAR_HIGHLIGHT);
         mvwprintw(
-            mb->win,
+            win,
             0,
-            mb->titles[index].range.start,
-            "%s", mb->titles[index].text.c_str() );
-        wattroff(mb->win, CP_MENU_BAR_HIGHLIGHT);
+            mb.titles[index].range.start - 1,
+            " %s ", mb.titles[index].text.c_str() );
+        wattroff( win, CP_MENU_BAR_HIGHLIGHT);
     }
-    wnoutrefresh(mb->win);
+    wnoutrefresh( win );
 }
 
 void navigate_menu(MENU *menu, int request) {
@@ -244,6 +248,7 @@ void navigate_menu(MENU *menu, int request) {
 }
 
 void display_dropdown(PANEL *target_panel, MENU *target_menu) {
+    post_menu(target_menu);
     // Bring the panel to the top and draw it
     show_panel(target_panel);
     top_panel(target_panel);
@@ -277,45 +282,89 @@ void blink_selected_menu_item(MENU * target_menu) {
     set_menu_fore(target_menu, saved_fore);
 }
 
-void activate_dropdown(MenuModel *menus, MenuBarModel *mb) {
-    MENU * target_menu = menus->menu;
-    WINDOW *menu_window = menu_win(target_menu);
-    // create the panel for displaying the menu
-    PANEL *target_panel = new_panel(menu_window);
-    display_dropdown(target_panel, target_menu);
+struct dropdown_state {
+    int menu_index;
+    int menu_id;
+    // target_menu and menu_win are obtainable via a MenuPopup
+    // MENU * target_menu;
+    // WINDOW * menu_window;
+    MenuPopup popup;
+
+    static dropdown_state state_for_menu(int index, MenuBarModel &mb, MenuPopupManager &pm) {
+        int menu_count = static_cast<int>(mb.menus.size());
+        if (index < 0 && index >= menu_count) {
+            log_printlnf("state_for_menu: index:%d is out of bounds (0 <= i < %d", index, menu_count);
+            assert(false);
+        }
+        int menu_id = mb.menus[index].id;
+        if ( !pm.contains_id(menu_id)) {
+            log_printlnf("state_for_menu: no popup menu found for menu_index:%d, menu_id:%d", index, menu_id);
+            assert(false);
+        }
+
+        MenuPopup popup = pm.popup_for_id(menu_id);
+        return { .menu_index = index, .menu_id = menu_id, .popup = popup };
+    }
+
+    MENU * target_menu() const {
+        return popup.menu();
+    }
+
+    WINDOW * menu_window() const {
+        return popup.window();
+    }
+
+};
+
+void activate_menubar_menu_dropdown( const WidgetContext &context,
+            const int menu_index, MenuBarModel &mb, MenuPopupManager &pm) {
+
+    dropdown_state state = dropdown_state::state_for_menu(menu_index, mb, pm);
+
+    // create a panel for displaying the menu on top of existing Layouts
+    PANEL *target_panel = new_panel( state.menu_window() );
+    display_dropdown(target_panel, state.target_menu() );
 
     int menu_ch;
     bool in_menu = true;
+    int menu_count = static_cast<int>(mb.menus.size());
 
     while(in_menu) {
-        menu_ch = wgetch(menu_window);
+        menu_ch = wgetch( state.menu_window() );
+        if ( menu_ch < MAX_ASCII && menu_ch == CTRL('q')) {
+            unget_wch(menu_ch); // pass the event to be handled up the call chain
+            in_menu = false;
+            continue;
+        }
+
         switch(menu_ch) {
+
             case KEY_RESIZE: {
                 in_menu = false;
             }
             break;
 
             case KEY_DOWN: {
-                navigate_menu(target_menu, REQ_DOWN_ITEM);
-                draw_menu_separators(target_menu);
+                navigate_menu(state.target_menu(), REQ_DOWN_ITEM);
+                draw_menu_separators(state.target_menu());
             }
             break;
 
             case KEY_UP: {
-                navigate_menu(target_menu, REQ_UP_ITEM);
-                draw_menu_separators(target_menu);
+                navigate_menu(state.target_menu(), REQ_UP_ITEM);
+                draw_menu_separators(state.target_menu());
             }
             break;
 
             case '\n': {
                 // Enter key
-                ITEM *cur = current_item(target_menu);
+                ITEM *cur = current_item(state.target_menu());
                 if (cur != nullptr && (item_opts(cur) & O_SELECTABLE) ) {
                     const char *name = item_name(cur);
                     // (Optional) Store selection details or trigger a callback here
-                    log_printf("menu item #%d selected: %s\n", item_index(cur), name );
+                    log_printlnf("menu item #%d selected: %s", item_index(cur), name );
 
-                    blink_selected_menu_item(target_menu);
+                    blink_selected_menu_item(state.target_menu());
 
                 }
                 in_menu = false;
@@ -334,15 +383,13 @@ void activate_dropdown(MenuModel *menus, MenuBarModel *mb) {
                 update_panels();
                 doupdate();
                 int step = menu_ch == KEY_LEFT ? -1 : 1;
-                int next_menu_index = (menus->index + mb->menu_count + step ) % mb->menu_count;
-                menus = &mb->menus[next_menu_index];
-                target_menu = menus->menu;
-                menu_window = menu_win(target_menu);
-                replace_panel( target_panel, menu_window );
+                int new_menu_index = ( state.menu_index + menu_count + step ) % menu_count;
 
-                highlight_menubar_title(mb, menus->index);
+                state = dropdown_state::state_for_menu(new_menu_index, mb, pm);
+                replace_panel( target_panel, state.menu_window() );
 
-                display_dropdown(target_panel, target_menu);
+                highlight_menubar_title(context, mb, state.menu_index );
+                display_dropdown(target_panel, state.target_menu() );
 
                 break;
             }
@@ -351,25 +398,32 @@ void activate_dropdown(MenuModel *menus, MenuBarModel *mb) {
                 MEVENT event;
                 if (getmouse(&event) == OK) {
                     if (event.bstate & ( BUTTON1_PRESSED | BUTTON1_CLICKED)) {
-                        Coordinate pos{.x = event.x, .y = event.y};
-                        if (!pos_in_menubar(pos, mb) && !pos_in_menu(pos, menus)) {
-                            // if click not in menu bar and not in current menu we can dismiss the menu popup.
+                        const Coordinate pos{.x = event.x, .y = event.y};
+                        Bounds menubar_bounds = window_bounds(context.win);
+                        if ( !menubar_bounds.contains(pos) &&  !pos_in_popup_menu(pos, state.popup ) ) {
+                             // if click not in menu bar and not in current menu we can dismiss the menu popup.
                             in_menu = false;
+                            // todo we may want to put this handled click back on the
+                            // input buffer for upstream processing, e.g., user has the
+                            // menubar displaying a menu, then clicks a text input box in
+                            // another part of the Layout. We want to cancel the dropdown,
+                            // but maybe give the input box a chance to process the click?
                             break;
                         }
-                        if (pos_in_menu(pos, menus)) {
+
+                        if ( pos_in_popup_menu(pos, state.popup) ) {
                             // if the click is on a selectable item, make it the current item and dismiss the menu
 
                             // get the y pos of the click in the subwindow. That will be the item index.
                             // if selectable, select that item and dismiss the menu popup
                             Coordinate win_pos = { pos.x, pos.y};
-                            if (wmouse_trafo( menu_sub(menus->menu), &win_pos.y, &win_pos.x, false )) {
-                                ITEM ** items = menu_items(menus->menu);
+                            if (wmouse_trafo( state.popup.subwindow(), &win_pos.y, &win_pos.x, false )) {
+                                ITEM ** items = menu_items( state.popup.menu() );
                                 ITEM * item = items[win_pos.y];
                                 log_printf("KEY_MOUSE: item pos.y = %d, name=%s\n",win_pos.y, item_name(item));
                                 if (item_opts(item) & O_SELECTABLE ) {
-                                    set_current_item(menus->menu, item);
-                                    blink_selected_menu_item(target_menu);
+                                    set_current_item( state.popup.menu(), item);
+                                    blink_selected_menu_item( state.target_menu());
                                     in_menu = false;
                                     break;
                                 }
@@ -377,28 +431,30 @@ void activate_dropdown(MenuModel *menus, MenuBarModel *mb) {
 
                         } else {
                             // click in menu bar.
-                            int menu_index = menu_index_for_pos(pos, mb);
-                            if ( menu_index == -1 ) {
-                                log_printf("menu_index == -1");
+                            int clicked_menu_index = menu_index_for_pos(pos, mb);
+                            if ( clicked_menu_index == -1 ) {
+                                // in menu bar but not on any menu title
+                                log_printlnf("clicked_menu_index == -1");
                                 in_menu = false;
                                 break; // no menu was clicked on
                             }
-                            if (menu_index != menus->index) {
+                            if  ( state.menu_index !=  clicked_menu_index) {
                                 // only draw a new popup if it's not the current popup
-                                log_printf("menubar click : menu_index == %d\n", menu_index);
+                                // click on a menu title
+                                log_printlnf("menubar click : menu_index == %d", clicked_menu_index);
 
                                 // switch to a different popup menu
                                 hide_panel(target_panel);
+                                update_panels();
+                                doupdate();
 
-                                menus = &mb->menus[menu_index];
-                                target_menu = menus->menu;
-                                menu_window = menu_win(target_menu);
-                                highlight_menubar_title(mb, menu_index);
+                                state = dropdown_state::state_for_menu(clicked_menu_index, mb, pm);
+                                highlight_menubar_title(context, mb, menu_index);
 
                                 // replaces the panel's window with a new one
-                                replace_panel( target_panel, menu_window );
+                                replace_panel( target_panel, state.menu_window() );
 
-                                display_dropdown(target_panel, target_menu);
+                                display_dropdown(target_panel, state.target_menu());
                                 break;
                             }
                         }
@@ -409,7 +465,8 @@ void activate_dropdown(MenuModel *menus, MenuBarModel *mb) {
 
 
 
-            // if mouse is moved in the menubar dismiss the current popup and display the next menu
+            // todo - if mouse is moved in the menubar dismiss the current popup and display the next menu?
+            // I'm leaning towards no. Extra complications for not much benefit.
 
         } // switch(menu_ch) {
 
@@ -420,36 +477,51 @@ void activate_dropdown(MenuModel *menus, MenuBarModel *mb) {
 
     // 6. Tear down the modal view and restore the background perfectly
     hide_panel(target_panel);
-    highlight_menubar_title(mb, -1); // remove any highlighted title
+    highlight_menubar_title(context, mb, -1); // remove any highlighted title
     update_panels();
     doupdate();
 
     del_panel(target_panel);
 }
 
+
+
+
+// void activate_dropdown(MenuModel *menus, MenuBarModel& mb) {}
+
 // enters a read loop to process interaction with the menu bar and menus.
 // Returns when a menu is dismissed
 // and returns the selected item, if any.
-void process_menubar_click(MenuBarModel *mb,  WINDOW * root_win, MEVENT event) {
-    // todo optimization - we can immediately rule out a menu title hit if event.x < 0 or > max range value
-    int main_rows, main_cols;
-    getmaxyx(root_win, main_rows, main_cols);
-    mvwprintw(root_win, main_rows - 2, 0, "You clicked in the menu bar at r:%d c:%d", event.y, event.x);
-    bool menu_clicked = false;
+bool process_menubar_click( const WidgetContext& context, MenuBarModel& mb, const MEVENT &event, MenuPopupManager& pm) {
+    log_printlnf("You clicked in the menu bar at r:%d c:%d", event.y, event.x);
+    bool handled = false;
     int menu_index = menu_index_for_pos({ .x = event.x, .y = event.y}, mb);
+    MenuBarView::draw(context, mb); // first draw menubar with no highlighting
+    wnoutrefresh( context.win );
     if (menu_index != -1) {
-        // click in a menu title
-        wmove(root_win, main_rows - 3, 0);
-        wprintw(root_win, "\nYou clicked on the %s menu title at r:%d c:%d.",
-            mb->titles[menu_index].text.c_str(), event.y, event.x);
-        menu_clicked = true;
-        wnoutrefresh(root_win);
+        // click in a menu bar title
+        log_printlnf("You clicked on the %s menu title at r:%d c:%d, menu_index=%d.",
+            mb.titles[menu_index].text.c_str(), event.y, event.x, menu_index);
+        const int menu_id =  mb.menus[menu_index].id;
+        log_printlnf("menu_id=%d", menu_id);
 
-        highlight_menubar_title(mb, menu_index);
-        doupdate();
-        activate_dropdown( &mb->menus[menu_index], mb);
+        if (pm.contains_id(menu_id)) {
+            const MenuPopup & popup = pm.popup_for_id(menu_id);
+            highlight_menubar_title(context, mb, menu_index);
+            // pm.activate_menubar_popup(
+            //     menu_index, mb,
+            //     {
+            //         .x = mb.titles[menu_index].range.start - 1,
+            //         .y = 0
+            //     }
+            // );
+            activate_menubar_menu_dropdown( context, menu_index, mb, pm);
+        }
+
+        handled = true;
     }
     // todo return the result of the menu click, an action object, lambda, etc.
+    return handled;
 }
 
 } // namespace mazes_n_things
