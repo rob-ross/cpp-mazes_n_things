@@ -159,12 +159,7 @@ MENU * create_menu(const std::vector<MenuItemModel> &item_data, Coordinate origi
     return menu;
 }
 
-
-/*bool pos_in_menubar(Coordinate pos, MenuBarModel& mb) {
-    return wenclose(mb.win, pos.y, pos.x);
-}*/
-
-bool pos_in_popup_menu( const Coordinate pos, const MenuPopup& popup ) {
+bool popup_contains_pos(const MenuPopup& popup, const Coordinate pos) {
     return window_bounds( popup.window()).contains(pos);
 }
 
@@ -180,7 +175,7 @@ static int menu_index_for_pos(Coordinate pos, MenuBarModel& mb) {
         // we grow the hit area by one col on each side to make it easier to select a menu title.
         // this works because we add 2 blank cols before each title.
         r.start -= 1;
-        r.end +=1;
+        r.end += 1;
         if (in_range(pos.x, r)) {
             // click in a menu title
             return i;
@@ -189,24 +184,6 @@ static int menu_index_for_pos(Coordinate pos, MenuBarModel& mb) {
     return -1;
 }
 
-// Returns true if the Coordinate is on a menu title.
-/*bool pos_on_menu_title(Coordinate pos, MenuBarModel *mb) {
-    WINDOW * mbar_win = mb->win;
-    if (pos_in_menubar(pos, mb)) {
-        int menu_count = mb->menu_count;
-        if (pos.x >= mb->titles[ menu_count - 1].range.end) {
-            return false; // click in menubar but not on any menu title
-        }
-        for (int i = 0; i < menu_count; ++i) {
-            ClosedRange r = mb->titles[i].range;
-            if (in_range(pos.x, r)) {
-                // click in a menu title
-                return true;
-            }
-        }
-    }
-    return false;
-}*/
 
 // draw the menu bar title with index `index` using the menu bar's CP_MENU_BAR_HIGHLIGHT color pair.
 static void highlight_menubar_title( const WidgetContext& context, MenuBarModel& mb, int index) {
@@ -260,7 +237,7 @@ void display_dropdown(PANEL *target_panel, MENU *target_menu) {
 }
 
 
-
+// todo move to MenuPopup?
 void blink_selected_menu_item(MENU * target_menu) {
     static constexpr int sleep_ms = 75;
     chtype saved_fore = menu_fore(target_menu);
@@ -306,11 +283,11 @@ struct dropdown_state {
         return { .menu_index = index, .menu_id = menu_id, .popup = popup };
     }
 
-    MENU * target_menu() const {
+    [[nodiscard]] MENU * target_menu() const {
         return popup.menu();
     }
 
-    WINDOW * menu_window() const {
+    [[nodiscard]] WINDOW * menu_window() const {
         return popup.window();
     }
 
@@ -400,7 +377,7 @@ void activate_menubar_menu_dropdown( const WidgetContext &context,
                     if (event.bstate & ( BUTTON1_PRESSED | BUTTON1_CLICKED)) {
                         const Coordinate pos{.x = event.x, .y = event.y};
                         Bounds menubar_bounds = window_bounds(context.win);
-                        if ( !menubar_bounds.contains(pos) &&  !pos_in_popup_menu(pos, state.popup ) ) {
+                        if ( !menubar_bounds.contains(pos) &&  !popup_contains_pos(state.popup, pos ) ) {
                              // if click not in menu bar and not in current menu we can dismiss the menu popup.
                             in_menu = false;
                             // todo we may want to put this handled click back on the
@@ -411,7 +388,7 @@ void activate_menubar_menu_dropdown( const WidgetContext &context,
                             break;
                         }
 
-                        if ( pos_in_popup_menu(pos, state.popup) ) {
+                        if ( popup_contains_pos(state.popup, pos) ) {
                             // if the click is on a selectable item, make it the current item and dismiss the menu
 
                             // get the y pos of the click in the subwindow. That will be the item index.
@@ -449,7 +426,7 @@ void activate_menubar_menu_dropdown( const WidgetContext &context,
                                 doupdate();
 
                                 state = dropdown_state::state_for_menu(clicked_menu_index, mb, pm);
-                                highlight_menubar_title(context, mb, menu_index);
+                                highlight_menubar_title(context, mb, clicked_menu_index);
 
                                 // replaces the panel's window with a new one
                                 replace_panel( target_panel, state.menu_window() );
@@ -460,9 +437,8 @@ void activate_menubar_menu_dropdown( const WidgetContext &context,
                         }
                     }
                 }
-            }
-            break;
-
+                break;
+            } //  case KEY_MOUSE
 
 
             // todo - if mouse is moved in the menubar dismiss the current popup and display the next menu?
@@ -486,9 +462,6 @@ void activate_menubar_menu_dropdown( const WidgetContext &context,
 
 
 
-
-// void activate_dropdown(MenuModel *menus, MenuBarModel& mb) {}
-
 // enters a read loop to process interaction with the menu bar and menus.
 // Returns when a menu is dismissed
 // and returns the selected item, if any.
@@ -500,6 +473,8 @@ bool process_menubar_click( const WidgetContext& context, MenuBarModel& mb, cons
     wnoutrefresh( context.win );
     if (menu_index != -1) {
         // click in a menu bar title
+        // todo temp debug
+        menu_index = -1; // force memory access ASAN err
         log_printlnf("You clicked on the %s menu title at r:%d c:%d, menu_index=%d.",
             mb.titles[menu_index].text.c_str(), event.y, event.x, menu_index);
         const int menu_id =  mb.menus[menu_index].id;
@@ -508,13 +483,6 @@ bool process_menubar_click( const WidgetContext& context, MenuBarModel& mb, cons
         if (pm.contains_id(menu_id)) {
             const MenuPopup & popup = pm.popup_for_id(menu_id);
             highlight_menubar_title(context, mb, menu_index);
-            // pm.activate_menubar_popup(
-            //     menu_index, mb,
-            //     {
-            //         .x = mb.titles[menu_index].range.start - 1,
-            //         .y = 0
-            //     }
-            // );
             activate_menubar_menu_dropdown( context, menu_index, mb, pm);
         }
 
