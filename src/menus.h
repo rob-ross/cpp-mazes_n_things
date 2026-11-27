@@ -21,9 +21,23 @@
 #include "widget.h"
 
 namespace mazes_n_things {
+
+// -----------------------------------------------------------------
+//   Forward Declarations
+// -----------------------------------------------------------------
+
+struct MenuItemModel;
 class MenuPopupManager;
 class MenuPopup;
 struct WidgetContext;
+
+bool process_menubar_click( const WidgetContext& context, MenuBarModel& mb, const MEVENT &event, MenuPopupManager& popup_manager);
+// todo should this be a member function of MenuPopupManager?
+MENU * create_menu(const std::vector<MenuItemModel> &item_data, Coordinate origin);
+void activate_menubar_menu_dropdown(
+        const WidgetContext &context, int menu_index, MenuBarModel &mb, MenuPopupManager &pm );
+void draw_menu_separators( MENU *menu ) ;
+
 
 
 struct MenuItemModel {
@@ -42,7 +56,6 @@ struct MenuModel {
 };
 
 
-
 struct MenuBarModel {
     std::vector<TextRange> titles{};
     // todo this might need to be vector<MenuModel&>
@@ -54,14 +67,11 @@ struct MenuBarView {
     static void draw( const WidgetContext& context, const MenuBarModel& model) ;
 };
 
-bool process_menubar_click( const WidgetContext& context, MenuBarModel& mb, const MEVENT &event, MenuPopupManager& popup_manager);
 
 struct MenuBarController {
     explicit MenuBarController(MenuPopupManager& pm) : popup_manager{pm} {};
 
-    static void handle_key( MenuBarModel& model,  int key) {
-
-    }
+    static void handle_key( MenuBarModel& model,  int key) { }
 
     bool handle_mouse_event( const WidgetContext& context, MenuBarModel& model, const MEVENT &event ) const {
         bool handled = false;
@@ -78,9 +88,7 @@ private:
     MenuPopupManager& popup_manager;
 };
 
-void activate_menubar_menu_dropdown(const WidgetContext &context,
-                                        int menu_index, MenuBarModel &mb, MenuPopupManager &pm);
-void draw_menu_separators(MENU *menu) ;
+
 
 class MenuPopup {
 public:
@@ -177,8 +185,7 @@ private:
     std::unordered_map<int, MenuPopup> popup_menus;
 };
 
-// todo should this be a member function of MenuPopupManager? I think so.
-MENU * create_menu(const std::vector<MenuItemModel> &item_data, Coordinate origin);
+
 
 
 
