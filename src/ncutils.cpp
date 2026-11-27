@@ -279,10 +279,10 @@ void set_mouse_pointer(const char *shape) {
         // - \033[?25h:   Ensure cursor is visible
         // - \033[0m:     Reset all text rendition attributes
         //  \033]22;\033\\ Restore default mouse pointer
+        // - \033[?1049l: Leave the terminal alternate screen used by ncurses
         //
 
-        constexpr char reset_seq[] = "\033[?2004l\033[?1003l\033[?1002l\033[?1000l\033[?25h\033[0m\033]22;\033\\";
-        write(STDOUT_FILENO, reset_seq, sizeof(reset_seq) - 1);
+        constexpr char reset_seq[] = "\033[?2004l\033[?1003l\033[?1002l\033[?1000l\033[?25h\033[0m\033]22;\033\\\033[?1049l";
         write(STDOUT_FILENO, reset_seq, sizeof(reset_seq) - 1);
 
         if (!isendwin()) {
@@ -304,7 +304,7 @@ void set_mouse_pointer(const char *shape) {
     // Only async-signal-safe operations belong in this path.  In particular,
     // do not call ncurses (endwin/isendwin) after a fatal signal.
     static void restore_terminal_from_signal() {
-        constexpr char reset_seq[] = "\033[?2004l\033[?1003l\033[?1002l\033[?1000l\033[?25h\033[0m\033]22;\033\\";
+        constexpr char reset_seq[] = "\033[?2004l\033[?1003l\033[?1002l\033[?1000l\033[?25h\033[0m\033]22;\033\\\033[?1049l";
         const int saved_errno = errno;
         (void) write(STDOUT_FILENO, reset_seq, sizeof(reset_seq) - 1);
         if (g_terminal_captured) {
