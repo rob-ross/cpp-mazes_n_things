@@ -35,6 +35,10 @@ cmake -S . -B cmake-build-debug -DCMAKE_BUILD_TYPE=Debug
 Build the project with:
 
 ```shell
+# An externally supplied ASAN_OPTIONS may override its defaults; 
+# inspect the generated report files from the application’s working directory.
+# e.g. `ASAN_OPTIONS=log_path=./asan:abort_on_error=1`
+# default is `log_path=asan_report<pid>`
 cmake --build cmake-build-debug
 ```
 
@@ -57,7 +61,7 @@ so the next configure will download it again.
 
 Run the Debug build from the project root with:
 
-```shell
+```shell 
 ./cmake-build-debug/mazes_n_things
 ```
 
