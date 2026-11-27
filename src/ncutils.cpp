@@ -268,7 +268,10 @@ void set_mouse_pointer(const char *shape) {
     // for restoring Terminal state even when exiting abnormally
     static struct termios g_orig_termios{};
     static volatile sig_atomic_t g_terminal_captured{};
+    static volatile sig_atomic_t g_signal_terminal_restored{};
 
+    // Forward declaration: sanitizer failure handling must not enter ncurses.
+    static void restore_terminal_from_signal();
 
     static void cleanup_terminal() {
         // Direct write of reset sequences to avoid stdio buffer state:
@@ -294,11 +297,18 @@ void set_mouse_pointer(const char *shape) {
         }
     }
 
-    // Sanitizer hook: Called automatically by ASan/UBSan right before process termination
-    // todo (rob) this doesn't seem to do anything when app exits abnormally due to asan.
+    // Sanitizer hook: called before ASan prints its diagnostic.  Do not call
+    // endwin() here: ncurses can emit a second screen transition after ASan
+    // starts writing, which makes the diagnostic disappear from the terminal.
     void __asan_on_error() {
-        // Emit escape codes and restore terminal line discipline
-        cleanup_terminal();
+        restore_terminal_from_signal();
+    }
+
+    // Keep sanitizer diagnostics available after ncurses restores the terminal.
+    // ASan appends the process id to this path, so concurrent runs do not
+    // overwrite one another's reports.
+    extern "C" const char *__asan_default_options() {
+        return "log_path=asan_report:detect_leaks=1";
     }
 
     // Only async-signal-safe operations belong in this path.  In particular,
@@ -306,6 +316,16 @@ void set_mouse_pointer(const char *shape) {
     static void restore_terminal_from_signal() {
         constexpr char reset_seq[] = "\033[?2004l\033[?1003l\033[?1002l\033[?1000l\033[?25h\033[0m\033]22;\033\\\033[?1049l";
         const int saved_errno = errno;
+
+        // ASan invokes this hook before printing and may subsequently raise
+        // SIGABRT.  Do not leave the alternate screen a second time: that
+        // would restore the saved screen and hide the diagnostic just printed.
+        if (g_signal_terminal_restored) {
+            errno = saved_errno;
+            return;
+        }
+        g_signal_terminal_restored = 1;
+
         (void) write(STDOUT_FILENO, reset_seq, sizeof(reset_seq) - 1);
         if (g_terminal_captured) {
             (void) tcsetattr(STDIN_FILENO, TCSANOW, &g_orig_termios);
@@ -323,11 +343,13 @@ void set_mouse_pointer(const char *shape) {
         raise(signum);
     }
 
+
     void setup_terminal_environment() {
         // Capture pristine terminal state before ncurses modifies it
         if (tcgetattr(STDIN_FILENO, &g_orig_termios) == 0) {
             g_terminal_captured = true;
         }
+        g_signal_terminal_restored = 0;
 
         // Register cleanup to run automatically on standard exit / return from main
         atexit(cleanup_terminal);
